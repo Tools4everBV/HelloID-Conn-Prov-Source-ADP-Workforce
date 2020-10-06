@@ -1,25 +1,29 @@
 # HelloID-Conn-Prov-Source-ADP-Workforce
 
-## This is a work in progress. Development has not yet finished.
+## This is a work in progress
+
+This connector must be used 'OnPremise'.
+![image](./assets/hid.png)
+
+Make sure you have at least PowerShell 5.1 installed.
 
 ### Todo
 
-- [ ] Add _departments.ps1_
+- [X] Add _departments.ps1_
 - [ ] Add pagination for the _workerDemographics_ endpoint
-- [ ] Add / test logic to obtain an AccessToken inluding a *.pfx certificate
-
-
+- [X] Add logic to obtain an AccessToken inluding a *.pfx certificate
 
 ## Table of contents
 
  - Introduction
+ - Prerequisites
  - Getting started
     - Certificate
     - API scoping
     - API discovery
     - Paging
     - Known errors
-    
+
 ## Introduction
 
 ADP Workforce is a cloud based HR management platform and provides a set of REST API's that allow you to programmatically interact with it's data. The HelloID source connector uses the API's in the table below.
@@ -35,9 +39,93 @@ ___The ADP Workforce source connector can only be used in conjunction with the H
 | _WorkerDemographics_ | _Contains the employees personal and contract data_ |
 | _Departments_ | _Contains data about the organisation structure_ |
 | _CostCenters_ | _Contains data about the costcenter structure_ |
-
 ---
+
+## Prerequisites
+
+The connector depends on PowerShell 5.1.
 
 ## Getting started
 
-### Setup your environment
+### X.509 certificate / public key
+
+To get access to the ADP Workforce API's, a x.509 certificate is needed. This certificate has to be created by the customer.
+
+The public key belonging to the certificate, must be send ADP. ADP will then generate a ClientID and ClientSecret and will activate the required API's.
+
+There are a few options for creating certificates. One of them being the 'OpenSSL' utility. Available on Linux/Windows. https://www.openssl.org/
+
+### X.509 certificate / Private key
+
+The private key (*.pfx) belonging to the X.590 certificate must be used in order obtain an accesstoken.
+
+### AccessToken
+
+In order to retrieve data from the ADP Workforce API's, an AccessToken has to be obtained. The AccessToken is used for all consecutive calls to ADP Workforce. To obtain an AccessToken, we will need the ___ClientID___, ___ClientSecret___ and the private key (*.pfx) certificate.
+
+### API Scope
+
+To obtain the AccessToken you will need to provide an 'API Scope' within the HTTP headers. The scope typically is the API you need access to. For instance, _worker-demographics_. Based on the provided scope, an AccessToken will be generated that will allow access to the specified scope only. In order to obtain an AccessToken for all API's, the scope must be set to: '_api'_.
+
+
+```powershell
+$ClientID = '__YourClientID__'
+$ClientSecret = '__YourClientSecret__'
+$Certificate = '__YourPfxCertificate__'
+
+$authorization = "$($ClientID):$($ClientSecret)"
+$base64String = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($authorization))
+
+$headers = @{
+    "Cache-Control" = "no-cache"
+    "Authorization" = "Basic $base64String"
+    "Content-Type" = "application/json"
+    "grant_type" = "client_credentials&scope=api"
+}
+Invoke-RestMethod @splatRestMethodParameters -UserAgent Uri 'https://accounts.dex.adp.com/auth/oauth/v2/token' -Method Post -Headers $headers -Certificate $Certificate
+
+```
+
+The response is a json containing the AccessToken.
+
+```json
+{
+    "access_token": "",
+    "token_type": "Bearer",
+    "expires_in": "3600"
+}
+```
+
+To obtain a token through Postman:
+
+1. Add the *.pfx certificate to ___Settings -> Certificates___.
+2. Create a new POST request.
+3. Click the __Authorization__ tab and add __Basic Authentication__.
+4. The UserName and Password need to be filled in with the ___ClientID___ and ___ClientSecret___.
+5. Click the ___Headers___ tab and add a new key/value pair with the key set to: ___grant_type___ and the value to: ___client_credentials&scope=api___
+
+### API Discovery
+
+ADP Workforce provides an enpoint that will obtain information about which API's are current activated for your environment.To see which API's are currently activated, execute the PowerShell code pasted below:
+
+```powershell
+$AccessToken = '__YourAccessToken__'
+
+$headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+$headers.Add("Authorization", "$AccessToken")
+Invoke-RestMethod 'https://api.dex.adp.com/help/v1/apis' -Method 'GET' -Headers $headers
+```
+
+### Paging
+
+Paging is only supported by ADP on the 'worker-demograpics' endpoint. Paging is not yet implemented in the connector.
+
+## Setup the PowerShell connector
+
+### Persons.ps1
+
+Note that this connector is based on a test environment provided by ADP.
+
+In order to use the connector, you might need to make some changes in the ___ConvertTo-RawDataPersonObject___ function, according to your ADP Workforce environment.
+
+---
