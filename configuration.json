@@ -1,0 +1,78 @@
+[
+  {
+    "key": "BaseUrl",
+    "type": "input",
+    "defaultValue": "",
+    "templateOptions": {
+      "label": "BaseUrl",
+      "placeholder": "https://test-api.adp.com",
+      "description": "The BaseUrl to the ADP Workforce environment",
+      "required": false
+    }
+  },
+  {
+    "key": "ClientID",
+    "type": "input",
+    "defaultValue": "",
+    "templateOptions": {
+      "label": "ClientID",
+      "placeholder": "DEX000",
+      "description": "The ClientID for the ADP Workforce environment. This will be provided by ADP",
+      "required": false
+    }
+  },
+  {
+    "key": "ClientSecret",
+    "type": "input",
+    "defaultValue": "",
+    "templateOptions": {
+      "label": "ClientSecret",
+      "type": "password",
+      "placeholder": "0000-0000-0000-0000",
+      "description": "The ClientSecret for the ADP Workforce environment. This will be provided by ADP",
+      "required": false
+    }
+  },
+  {
+    "key": "Certificate",
+    "type": "input",
+    "defaultValue": "",
+    "templateOptions": {
+      "label": "Certificate",
+      "placeholder": "C:\\ADP.pfx",
+      "description": "The private key of the x.509 certificate that's used to generate a ClientID and ClientSecret and for activating the required API's.",
+      "required": false
+    }
+  },
+  {
+    "key": "ProxyServer",
+    "type": "input",
+    "defaultValue": "",
+    "templateOptions": {
+      "label": "ProxyServer",
+      "placeholder": "http://localhost:8888",
+      "description": "The URL (or IP Address) to the ProxyServer in the network. Leave empty if no ProxyServer is being used",
+      "required": false
+    }
+  },
+  {
+    "key": "ImportFile",
+    "type": "checkbox",
+    "defaultValue": false,
+    "templateOptions": {
+      "label": "Import from JSON file",
+      "required": false
+    }
+  },
+  {
+    "key": "JsonFile",
+    "type": "input",
+    "defaultValue": "",
+    "templateOptions": {
+      "label": "JsonFIle",
+      "placeholder": "C:\\worker-demographics.json",
+      "description": "The location of the JSON file that contains the workers",
+      "required": false
+    }
+  }
+]
