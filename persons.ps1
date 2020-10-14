@@ -13,7 +13,7 @@ function Get-ADPWorkers {
     .DESCRIPTION
     Retrieves the Workers and WorkerAssignments from ADP Workforce
 
-    .PARAMETER Configuration
+    .PARAMETER ConfigurationSettings
     The ConfigurationSettings set on the System configuration tab
     #>
     [CmdletBinding()]
@@ -39,7 +39,7 @@ function Get-ADPWorkers {
 
     try {
         if ($($ConfigurationSettings.ImportFile)){
-            Get-Content $($ConfigurationSettings.JsonFile) | ConvertFrom-Json | ConvertTo-HelloIDPersonObject | ConvertTo-Json -Depth 100
+            Get-Content $($ConfigurationSettings.JsonFile) | ConvertFrom-Json | ConvertTo-RawDataPersonObject | ConvertTo-Json -Depth 100
         } else {
             $splatADPRestMethodParams = @{
                 Uri = "$($ConfigurationSettings.BaseUrl)/hr/v2/worker-demographics"
@@ -48,7 +48,7 @@ function Get-ADPWorkers {
                 ProxyServer = $ProxyServer
                 SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
             }
-            Invoke-ADPRestMethod @splatADPRestMethodParams | ConvertTo-HelloIDPersonObject | ConvertTo-Json -Depth 100
+            Invoke-ADPRestMethod @splatADPRestMethodParams | ConvertTo-RawDataPersonObject | ConvertTo-Json -Depth 100
         }
     } catch [System.Net.WebException] {
         $webEx = $PSItem
@@ -193,13 +193,13 @@ function Invoke-ADPRestMethod {
     }
 }
 
-function ConvertTo-HelloIDPersonObject {
+function ConvertTo-RawDataPersonObject {
     <#
     .SYNOPSIS
-    Converts the ADP Worker object to a HelloID person object
+    Converts the ADP Worker object to a raw data object
 
     .DESCRIPTION
-    Converts the ADP Worker object to a HelloID person object
+    Converts the ADP Worker object to a raw data object that can be imported into HelloID
 
     .PARAMETER Workers
     The list of Workers from ADP Workforce
@@ -277,7 +277,6 @@ function ConvertTo-HelloIDPersonObject {
                         AssignmentCostCenters = $assignment.assignmentCostCenters
                         ReportsTo = $assignment.reportsTo
                         CustomFieldsGroup = $assignment.customFieldGroup
-    
                     }
                     $contracts.Add($assignmentObj)
                 }
