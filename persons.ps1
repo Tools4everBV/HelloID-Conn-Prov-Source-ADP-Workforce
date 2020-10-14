@@ -1,7 +1,7 @@
 #####################################################
 # HelloID-Conn-Prov-SOURCE-ADP-Workforce-Persons
 # 
-# Version: 1.0.0
+# Version: 1.0.1
 #####################################################
 
 #Region External functions
@@ -13,48 +13,21 @@ function Get-ADPWorkers {
     .DESCRIPTION
     Retrieves the Workers and WorkerAssignments from ADP Workforce
 
-    .PARAMETER CientID
-    The ClientID for the ADP Workforce environment. This will be provided by ADP
-
-    .PARAMETER ClientSecret
-    The ClientSecret for the ADP Workforce environment. This will be provided by ADP
-
-    .PARAMETER Certificate
-    The private key of the x.509 certificate that's used to generate a ClientID and ClientSecret and for activating the required API's.
-
-    .PARAMETER ProxyServer
-    The URL (or IP Address) to the ProxyServer in the network. Leave empty if no ProxyServer is being used
-
-    .PARAMETER SecurityProtocol
-    The encprytion protocol used when sending data across the network. The default is set to TLS1.2
+    .PARAMETER Configuration
+    The ConfigurationSettings set on the System configuration tab
     #>
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory)]
-        [String]
-        $CientID,
-
-        [Parameter(Mandatory)]
-        [SecureString]
-        $ClientSecret,
-
-        [Parameter(Mandatory)]
-        [X509Certificate]
-        $Certifcate,
-
-        [AllowNull()]
-        [AllowEmptyString()]
-        [String]
-        $ProxyServer,
-
-        [System.Net.SecurityProtocolType]
-        $SecurityProtocol
+        [Object]
+        $ConfigurationSettings
     )
 
-    $baseUri = [System.Uri]'https://api.dex.adp.com'
-
     try {
-        $accessToken = Get-ADPAccessToken -CientID $ClientID -ClientSecret $ClientSecret -Certifcate $Certifcate
+        if(!$($ConfigurationSettings.ImportFile)){
+            $clientSecretBstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($ConfigurationSettings.CLientSecret))
+            $clientSecretString = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($clientSecretBstr)
+            $accessToken = Get-ADPAccessToken -CientID $($ConfigurationSettings.ClientID) -ClientSecret $clientSecretString -Certifcate $($ConfigurationSettings.Certificate)
+        }
     } catch [System.Net.WebException] {
         $webEx = $PSItem
         $errorObj = ($($webEx.ErrorDetails.Message) | ConvertFrom-Json).response
@@ -65,14 +38,18 @@ function Get-ADPWorkers {
     }
 
     try {
-        $splatADPRestMethodParams = @{
-            Uri = "$($baseUri)hr/v2/worker-demographics"
-            Method = 'GET'
-            AccessToken = $accessToken
-            ProxyServer = $ProxyServer
-            SecurityProtocol = $SecurityProtocol
+        if ($($ConfigurationSettings.ImportFile)){
+            Get-Content $($ConfigurationSettings.JsonFile) | ConvertFrom-Json | ConvertTo-HelloIDPersonObject | ConvertTo-Json -Depth 100
+        } else {
+            $splatADPRestMethodParams = @{
+                Uri = "$($ConfigurationSettings.BaseUrl)/hr/v2/worker-demographics"
+                Method = 'GET'
+                AccessToken = $accessToken
+                ProxyServer = $ProxyServer
+                SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+            }
+            Invoke-ADPRestMethod @splatADPRestMethodParams | ConvertTo-HelloIDPersonObject | ConvertTo-Json -Depth 100
         }
-        Invoke-ADPRestMethod @splatADPRestMethodParams | ConvertTo-RawDataPersonObject | ConvertTo-Json -Depth 100
     } catch [System.Net.WebException] {
         $webEx = $PSItem
         $errorObj = ($($webEx.ErrorDetails.Message) | ConvertFrom-Json).response
@@ -113,23 +90,17 @@ function Get-ADPAccessToken {
     #>
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory)]
         [String]
         $CientID,
 
-        [Parameter(Mandatory)]
         [SecureString]
         $ClientSecret,
 
-        [Parameter(Mandatory)]
         [X509Certificate]
         $Certifcate
     )
 
-    $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($ClientSecret)
-    $clientSecretString = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
-    
-    $authorization = "$($CientID):$($clientSecretString)"
+    $authorization = "$($CientID):$($ClientSecret)"
     $base64String = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($authorization))
 
     $headers = @{
@@ -170,9 +141,6 @@ function Invoke-ADPRestMethod {
 
     .PARAMETER ProxyServer
     The URL (or IP Address) to the ProxyServer in the network. Leave empty if no ProxyServer is being used
-
-    .PARAMETER SecurityProtocol
-    The encprytion protocol used when sending data across the network. The default is set to TLS1.2
     #>
     [CmdletBinding()]
     param(
@@ -184,7 +152,7 @@ function Invoke-ADPRestMethod {
         [String]
         $Method,
 
-        [Parameter(Mandatory)]
+        #[Parameter(Mandatory)]
         [String]
         $AccessToken,
 
@@ -219,19 +187,19 @@ function Invoke-ADPRestMethod {
             Proxy = $proxy
             UseBasicParsing = $true
         }
-        Invoke-RestMethod @splatRestMethodParameters
+        Invoke-RestMethod @splatRestMethodParameters      
     } catch {
         $PSCmdlet.ThrowTerminatingError($PSItem)
     }
 }
 
-function ConvertTo-RawDataPersonObject {
+function ConvertTo-HelloIDPersonObject {
     <#
     .SYNOPSIS
-    Converts the worker objects to a raw data person object
+    Converts the ADP Worker object to a HelloID person object
 
     .DESCRIPTION
-    Converts the worker objects to a raw data person object that can be imported into HelloID. Change this according to your ADP Workforce environment
+    Converts the ADP Worker object to a HelloID person object
 
     .PARAMETER Workers
     The list of Workers from ADP Workforce
@@ -252,74 +220,68 @@ function ConvertTo-RawDataPersonObject {
         foreach ($worker in $workers.workers) {
             [System.Collections.Generic.List[object]]$contracts = @()
 
-            if ($null -ne $worker.businessCommunication){
-                if ($null -ne $worker.businessCommunication.landlines){
-                    $businessLandline = $worker.businessCommunication.landlines[0]
-                }
-                if ($null -ne $worker.businessCommunication.mobiles){
-                    $businessMobile = $worker.businessCommunication.mobiles[0]
-                }
-                if ($null -ne $worker.businessCommunication.emails){
-                    $businessEmail = $worker.businessCommunication.emails[0]
-                }
-            }
-
-            if ($null -ne $worker.person.communication){
-                if ($null -ne $worker.person.communication.landlines){
-                    $personalLandline = $worker.person.communication.landlines[0]
-                }
-                if ($null -ne $worker.person.communication.mobiles){
-                    $personalMobile = $worker.person.communication.mobiles[0]
-                }
-                if ($null -ne $worker.person.communcation.emails){
-                    $personalEmail = $worker.person.communcation.emails[0]
-                }
-            }
-
             $workerObj = [PSCustomObject]@{
-                ExternalId = $worker.associateOID
+                ExternalId = $worker.workerID.idValue 
                 DisplayName = $worker.person.legalName.formattedName
-                assocciateOID = $worker.associateOID
-                workerID = $worker.workerID
-                Person = $worker.person
-                BusinessCommunicationLandLine = $businessLandline
-                BusinessCommunicationMobile = $businessMobile
-                BusinessCommunicationEmail = $businessEmail
-                PersonalCommunicationLandLine = $personalLandline
-                PersonalCommunicationMobile = $personalMobile
-                PersonalCommunicationEmail = $personalEmail
-                WorkerDates = $worker.WorkerDates
-                WorkerStatus = $worker.workerStatus
+                AssocciateOID = $worker.associateOID
+                WorkerID = $worker.workerID.idValue
+                Status = $worker.workerStatus.statusCode
+                Personal = @{
+                    BirthDate = $worker.person.birthDate
+                    BirthPlace = $worker.person.birthPlace.cityName
+                    Name = @{
+                        legalName = @{
+                            FamilyName = $worker.person.legalName.familyName1
+                            FamilyNamePrefix = $worker.person.legalName.familyName1Prefix
+                            FormattedName = $worker.person.legalName.formattedName
+                            GivenName = $worker.person.legalName.givenName
+                            Initials = $worker.person.legalName.initials
+                            NickName = $worker.person.legalName.nickName
+                        }
+                        PreferredSalutation = @{
+                            Salutation = $worker.person.legalName.preferredSalutation
+                        }
+                    }
+                    BusinessCommunication = @{
+                        Emails = $worker.businessCommunication.emails
+                        LandLines = $worker.businessCommunication.landlines
+                        Mobiles = $worker.businessCommunication.mobiles
+                    }
+                }
+                OriginalHireDate = $worker.WorkerDates.originalHireDate
+                TerminationDate = $worker.WorkerDates.terminationDate
+                RetirementDate = $worker.WorkerDates.retirementDate
                 Contracts = $contracts
             }
 
-            $listWorkers.Add($workerObj)
-
             if ($null -ne $worker.workAssignments){
-                foreach ($assignment in $worker.workAssignments){
-
-                    if ($null -ne $assignment.homeOrganizationalUnits){
-                        $HomeOrganizationlUnits = $assignment.homeOrganizationalUnits[0]
+                foreach ($assignment in $worker.workAssignments){   
+                    $assignmentObj = [PSCustomObject]@{
+                        PrimaryIndicator = $assignment.primaryIndicator
+                        ActualStartDate = $assignment.actualStartDate
+                        TerminationDate = $assignment.terminationDate
+                        ExpectedTerminationDate = $assignment.expectedTerminationDate
+                        WorkerTypeCode = $assignment.workerTypeCode
+                        ManagementPosition = $assignment.managementPositionIndicator
+                        PositionId = $assignment.positionID
+                        PositionTitle = $assignment.PositionTitle
+                        HomeOrganizationalUnit = $assignment.homeOrganizationalUnits
+                        HomeWorkLocation = $assignment.homeWorkLocation.nameCode
+                        AssignedWorkLocation = $assignment.assignedWorkLocations
+                        ItemId = $assignment.itemID
+                        PayrollGroupCode = $assignment.payrollGroupCode
+                        PayrollFileNumber = $assignment.payrollFileNumber
+                        JobCode = $assignment.jobCode.longName
+                        StandardHours = $assignment.standardHours.hoursQuantity
+                        StandardHoursQuantity = $assignment.standardHours.unitCode.longName
+                        AssignmentCostCenters = $assignment.assignmentCostCenters
+                        ReportsTo = $assignment.reportsTo
+                        CustomFieldsGroup = $assignment.customFieldGroup
+    
                     }
-                    if ($null -ne $assignment.assignedOrganizationalUnits){
-                        $AssignedOrganizationalUnits = $assignment.assignedOrganizationalUnits[0]
-                    }
-                    if ($null -ne $assignment.reportsTo){
-                        $ReportsTo = $assignment.reportsTo[0]
-                    }
-                    if ($null -ne $assignment.assignedWorkLocations){
-                        $AssignedWorkLocation = $assignment.assignedWorkLocations[0]
-                    }
-
-                    $currentAssignment = [PSCustomObject]@{
-                        Assignment = $assignment
-                        HomeOrganizationlUnits = $HomeOrganizationlUnits
-                        AssignedOrganizationalUnits = $AssignedOrganizationalUnits
-                        ReportsTo = $ReportsTo
-                        AssignedWorkLocation = $AssignedWorkLocation
-                    }
-                    $contracts.Add($currentAssignment)
+                    $contracts.Add($assignmentObj)
                 }
+                $listWorkers.Add($workerObj)
             }
         }
         $listWorkers
@@ -328,34 +290,6 @@ function ConvertTo-RawDataPersonObject {
 #EndRegion
 
 #Region Script
-<#
-.SYNOPSIS
-Retrieves the Workers and WorkerAssignments from ADP Workforce
-
-.DESCRIPTION
-Retrieves the Workers and WorkerAssignments from ADP Workforce
-
-.PARAMETER CientID
-The ClientID for the ADP Workforce environment. This will be provided by ADP
-
-.PARAMETER ClientSecret
-The ClientSecret for the ADP Workforce environment. This will be provided by ADP
-
-.PARAMETER Certificate
-The private key of the x.509 certificate that's used to generate a ClientID and ClientSecret and for activating the required API's.
-
-.PARAMETER ProxyServer
-The URL (or IP Address) to the ProxyServer in the network. Leave empty if no ProxyServer is being used
-
-.PARAMETER SecurityProtocol
-The encprytion protocol used when sending data across the network. The default is set to TLS1.2
-#>
-$SplatADPGetWorkers = @{
-    ClientID = ''
-    ClientSecret = ''
-    Certificate = ''
-    ProxyServer =  ''
-    SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
-}
-Get-ADPWorkers @SplatADPGetWorkers
+$connectionSettings = ConvertFrom-Json $configuration
+Get-ADPWorkers -Configuration $connectionSettings
 #EndRegion
