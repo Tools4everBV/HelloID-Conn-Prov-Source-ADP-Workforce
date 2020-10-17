@@ -7,7 +7,7 @@
       "label": "BaseUrl",
       "placeholder": "https://test-api.adp.com",
       "description": "The BaseUrl to the ADP Workforce environment",
-      "required": false
+      "required": true
     }
   },
   {
@@ -18,7 +18,7 @@
       "label": "ClientID",
       "placeholder": "DEX000",
       "description": "The ClientID for the ADP Workforce environment. This will be provided by ADP",
-      "required": false
+      "required": true
     }
   },
   {
@@ -30,7 +30,7 @@
       "type": "password",
       "placeholder": "0000-0000-0000-0000",
       "description": "The ClientSecret for the ADP Workforce environment. This will be provided by ADP",
-      "required": false
+      "required": true
     }
   },
   {
@@ -40,8 +40,8 @@
     "templateOptions": {
       "label": "Certificate",
       "placeholder": "C:\\ADP.pfx",
-      "description": "The private key of the x.509 certificate that's used to generate a ClientID and ClientSecret and for activating the required API's.",
-      "required": false
+      "description": "The location to the 'private key of the x.509 certificate' on the server where the HelloID agent and provisioning agent are running. Make sure to use the private key for the certificate that's used to generate a ClientID and ClientSecret and for activating the required API's",
+      "required": true
     }
   },
   {
@@ -52,7 +52,18 @@
       "label": "ProxyServer",
       "placeholder": "http://localhost:8888",
       "description": "The URL (or IP Address) to the ProxyServer in the network. Leave empty if no ProxyServer is being used",
-      "required": false
+      "required": true
+    }
+  },
+  {
+    "key": "ApiScope",
+    "type": "input",
+    "defaultValue": "",
+    "templateOptions": {
+      "label": "ApiScope",
+      "placeholder": "api",
+      "description": "The name of the API you need access to. For instance, 'worker-demographics'. You can specficy more API's by separating them with a comma. To get access to all available API's, set the scope to: 'api'",
+      "required": true
     }
   },
   {
@@ -60,7 +71,8 @@
     "type": "checkbox",
     "defaultValue": false,
     "templateOptions": {
-      "label": "Import from JSON file",
+      "label": "Import from JSON file (For testing purposes only)",
+      "description": "Use this in combination with the JSON file to test the import of the workers without making API calls to ADP Workforce",
       "required": false
     }
   },
@@ -69,9 +81,9 @@
     "type": "input",
     "defaultValue": "",
     "templateOptions": {
-      "label": "JsonFIle",
+      "label": "JsonFIle (For testing purposes only)",
       "placeholder": "C:\\worker-demographics.json",
-      "description": "The location of the JSON file that contains the workers",
+      "description": "The location to the 'JSON file containing the workers' on the server where the HelloID agent and provisioning agent are running.",
       "required": false
     }
   }
