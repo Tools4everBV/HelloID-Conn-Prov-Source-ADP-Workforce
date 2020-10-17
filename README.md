@@ -140,7 +140,7 @@ The connector configuration supports a person import from a JSON file.
 
 If you need to test your code in VSCode, make sure to create a _'$connectionSettings'_ object containing the following fields:
 
-```json
+```powershell
 $connectionSettings = @{
     BaseUrl = ''
     ClientID = ''
