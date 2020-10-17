@@ -1,31 +1,32 @@
 # Invoke-ADPRestMethod
 
 ## SYNOPSIS
-Sends and receives data to and from the ADP API's
+Retrieves data from the ADP API's
 
 ## SYNTAX
 
 ```
-Invoke-ADPRestMethod [-Uri] <String> [-Method] <String> [-AccessToken] <String> [[-ProxyServer] <String>]
- [[-SecurityProtocol] <SecurityProtocolType>] [<CommonParameters>]
+Invoke-ADPRestMethod [-Uri] <String> [-Method] <String> [-AccessToken] <AllowNullAttribute>
+ [[-ProxyServer] <String>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Sends and receives data to and from the ADP API's
+Retrieves data from the ADP API's using the standard \<Invoke-RestMethod\> cmdlet
 
 ## EXAMPLES
 
-### Example 1
-```powershell
-PS C:\> {{ Add example code here }}
+### EXAMPLE 1
+```
+Invoke-ADPRestMethod -Uri 'https://test-api.adp.com/hr/v2/worker-demographics' -Method 'GET' -AccessToken '0000-0000-0000-0000'
 ```
 
-{{ Add example description here }}
+Returns the raw JSON data containing all workers from ADP Workforce
 
 ## PARAMETERS
 
 ### -Uri
-The BaseUri to the ADP Workforce environment
+The BaseUri to the ADP Workforce environment.
+For example: https://test-api.adp.com
 
 ```yaml
 Type: String
@@ -41,7 +42,8 @@ Accept wildcard characters: False
 
 ### -Method
 The CRUD operation for the request.
-Valid HttpMethods inlcude: GET and POST
+Valid HttpMethods inlcude: GET and POST.
+Note that the ADP API's needed for the connector will only support 'GET'
 
 ```yaml
 Type: String
@@ -59,7 +61,7 @@ Accept wildcard characters: False
 The AccessToken retrieved by the \<Get-ADPAccessToken\> function
 
 ```yaml
-Type: String
+Type: AllowNullAttribute
 Parameter Sets: (All)
 Aliases:
 
@@ -86,30 +88,5 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SecurityProtocol
-The encprytion protocol used when sending data across the network.
-The default is set to TLS1.2
-
-```yaml
-Type: SecurityProtocolType
-Parameter Sets: (All)
-Aliases:
-Accepted values: SystemDefault, Ssl3, Tls, Tls11, Tls12, Tls13
-
-Required: False
-Position: 5
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
-
-## INPUTS
-
-## OUTPUTS
-
-## NOTES
-
-## RELATED LINKS
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216)
