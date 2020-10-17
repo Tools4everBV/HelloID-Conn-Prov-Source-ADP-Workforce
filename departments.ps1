@@ -1,60 +1,34 @@
 #####################################################
 # HelloID-Conn-Prov-SOURCE-ADP-Workforce-Departments
 # 
-# Version: 1.0.0
+# Version: 1.0.2
 #####################################################
 
 #Region External functions
 function Get-ADPDepartments {
     <#
     .SYNOPSIS
-    Retrieves the department data from ADP Workforce
+    Retrieves the Departments from ADP Workforce
 
     .DESCRIPTION
-    Retrieves the department data from ADP Workforce
+    Retrieves the Departments from ADP Workforce
 
-    .PARAMETER CientID
-    The ClientID for the ADP Workforce environment. This will be provided by ADP
-
-    .PARAMETER ClientSecret
-    The ClientSecret for the ADP Workforce environment. This will be provided by ADP
-
-    .PARAMETER Certificate
-    The private key of the x.509 certificate that's used to generate a ClientID and ClientSecret and for activating the required API's.
-
-    .PARAMETER ProxyServer
-    The URL (or IP Address) to the ProxyServer in the network. Leave empty if no ProxyServer is being used
-
-    .PARAMETER SecurityProtocol
-    The encprytion protocol used when sending data across the network. The default is set to TLS1.2
+    .PARAMETER ConfigurationSettings
+    The ConfigurationSettings set on the System configuration tab within HelloID
     #>
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
-        [String]
-        $CientID,
-
-        [Parameter(Mandatory)]
-        [SecureString]
-        $ClientSecret,
-
-        [Parameter(Mandatory)]
-        [X509Certificate]
-        $Certifcate,
-
-        [AllowNull()]
-        [AllowEmptyString()]
-        [String]
-        $ProxyServer,
-
-        [System.Net.SecurityProtocolType]
-        $SecurityProtocol
+        [PSObject]
+        $ConfigurationSettings
     )
 
-    $baseUri = [System.Uri]'https://api.dex.adp.com'
-
     try {
-        $accessToken = Get-ADPAccessToken -CientID $ClientID -ClientSecret $ClientSecret -Certifcate $Certifcate
+        if(!$($ConfigurationSettings.ImportFile)){
+            $clientSecretBstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($ConfigurationSettings.CLientSecret))
+            $clientSecretString = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($clientSecretBstr)
+            $accessToken = Get-ADPAccessToken -CientID $($ConfigurationSettings.ClientID) -ClientSecret $clientSecretString -Certifcate $($ConfigurationSettings.Certificate) -ApiScope $($ConfigurationSettings.ApiScope)
+        }
     } catch [System.Net.WebException] {
         $webEx = $PSItem
         $errorObj = ($($webEx.ErrorDetails.Message) | ConvertFrom-Json).response
@@ -65,14 +39,18 @@ function Get-ADPDepartments {
     }
 
     try {
-        $splatADPRestMethodParams = @{
-            Uri = "$($baseUri)core/v1/departments"
-            Method = 'GET'
-            AccessToken = $accessToken
-            ProxyServer = $ProxyServer
-            SecurityProtocol = $SecurityProtocol
+        if ($($ConfigurationSettings.ImportFile)){
+            Get-Content $($ConfigurationSettings.JsonFile) | ConvertFrom-Json | ConvertTo-RawDataDepartmentObject | ConvertTo-Json -Depth 100
+        } else {
+            $splatADPRestMethodParams = @{
+                Uri = "$($ConfigurationSettings.BaseUrl)/core/v2/organization-departments"
+                Method = 'GET'
+                AccessToken = $accessToken
+                ProxyServer = $ProxyServer
+                SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+            }
+            Invoke-ADPRestMethod @splatADPRestMethodParams | ConvertTo-RawDataPersonObject | ConvertTo-Json -Depth 100
         }
-        Invoke-ADPRestMethod @splatADPRestMethodParams | ConvertTo-RawDataDepartmentObject | ConvertTo-Json -Depth 100
     } catch [System.Net.WebException] {
         $webEx = $PSItem
         $errorObj = ($($webEx.ErrorDetails.Message) | ConvertFrom-Json).response
@@ -88,10 +66,11 @@ function Get-ADPDepartments {
 function Get-ADPAccessToken {
     <#
     .SYNOPSIS
-    Retrieves an AccessToken from the ADP API
+    Retrieves an AccessToken from the ADP API using the standard <Invoke-RestMethod> cmdlet
 
     .DESCRIPTION
-    The ADP Workforce API's uses OAuth for authentication\authorization. Before data can be retrieved from the API's, an AccessToken has to obtained. The AccessToken is used for all consecutive calls to the ADP Workforce API's
+    The ADP Workforce API's uses OAuth for authentication\authorization.
+    Before data can be retrieved from the API's, an AccessToken has to obtained. The AccessToken is used for all consecutive calls to the ADP Workforce API's
 
     .PARAMETER CientID
     The ClientID for the ADP Workforce environment. This will be provided by ADP
@@ -100,16 +79,22 @@ function Get-ADPAccessToken {
     The ClientSecret for the ADP Workforce environment. This will be provided by ADP
 
     .PARAMETER Certificate
-    The private key of the x.509 certificate that's used to generate a ClientID and ClientSecret and for activating the required API's. 
+    The location to the the private key of the x.509 certificate on the server where the HelloID agent and provisioning agent are running
+    Make sure to use the private key for the certificate that's used to generate a ClientID and ClientSecret and for activating the required API's
+
+    .PARAMETER ApiScope
+    The name of the API you need access to. For instance, 'worker-demographics'. You can specficy more API's by separating them with a comma
+    To get access to all available API's, set the scope to: 'api
 
     .EXAMPLE
-    Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_Secret' -Certifcate 'Customer_ADP_Dev.pfx'
+    Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_Secret' -Certifcate 'Customer_ADP_Dev.pfx' -ApiScope 'api'
 
-    {
-        "access_token": "1",
-        "token_type": "2",
-        "expires_in": "2"
-    }
+    Retrieves an accesstoken that is authenticated for all API's.
+
+    .EXAMPLE
+    Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_Secret' -Certifcate 'Customer_ADP_Dev.pfx' -ApiScope 'worker-demographics, organizational-departments'
+
+    Retrieves an accesstoken that is authenticated for the worker-demographics' and 'organizational-departsments' API
     #>
     [CmdletBinding()]
     param (
@@ -122,21 +107,22 @@ function Get-ADPAccessToken {
         $ClientSecret,
 
         [Parameter(Mandatory)]
-        [X509Certificate]
-        $Certifcate
+        [String]
+        $Certifcate,
+
+        [Parameter(Mandatory)]
+        [String]
+        $ApiScope
     )
 
-    $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($ClientSecret)
-    $clientSecretString = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
-    
-    $authorization = "$($CientID):$($clientSecretString)"
+    $authorization = "$($CientID):$($ClientSecret)"
     $base64String = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($authorization))
 
     $headers = @{
         "Cache-Control" = "no-cache"
         "Authorization" = "Basic $base64String"
         "Content-Type" = "application/json"
-        "grant_type" = "client_credentials&scope=api"
+        "grant_type" = "client_credentials&scope=$ApiScope"
     }
 
     try {
@@ -154,16 +140,16 @@ function Get-ADPAccessToken {
 function Invoke-ADPRestMethod {
     <#
     .SYNOPSIS
-    Sends and receives data to and from the ADP API's
+    Retrieves data from the ADP API's
 
     .DESCRIPTION
-    Sends and receives data to and from the ADP API's
+    Retrieves data from the ADP API's using the standard <Invoke-RestMethod> cmdlet
 
     .PARAMETER Uri
-    The BaseUri to the ADP Workforce environment
+    The BaseUri to the ADP Workforce environment. For example: https://test-api.adp.com
 
     .PARAMETER Method
-    The CRUD operation for the request. Valid HttpMethods inlcude: GET and POST
+    The CRUD operation for the request. Valid HttpMethods inlcude: GET and POST. Note that the ADP API's needed for the connector will only support 'GET'
 
     .PARAMETER AccessToken
     The AccessToken retrieved by the <Get-ADPAccessToken> function
@@ -171,8 +157,10 @@ function Invoke-ADPRestMethod {
     .PARAMETER ProxyServer
     The URL (or IP Address) to the ProxyServer in the network. Leave empty if no ProxyServer is being used
 
-    .PARAMETER SecurityProtocol
-    The encprytion protocol used when sending data across the network. The default is set to TLS1.2
+    .EXAMPLE
+    Invoke-ADPRestMethod -Uri 'https://test-api.adp.com/hr/v2/worker-demographics' -Method 'GET' -AccessToken '0000-0000-0000-0000'
+
+    Returns the raw JSON data containing all workers from ADP Workforce
     #>
     [CmdletBinding()]
     param(
@@ -185,16 +173,15 @@ function Invoke-ADPRestMethod {
         $Method,
 
         [Parameter(Mandatory)]
+        [AllowNull]
+        [AllowEmptyString]
         [String]
         $AccessToken,
 
         [AllowNull()]
         [AllowEmptyString()]
         [String]
-        $ProxyServer,
-
-        [System.Net.SecurityProtocolType]
-        $SecurityProtocol
+        $ProxyServer
     )
 
     $headers = @{
@@ -210,7 +197,7 @@ function Invoke-ADPRestMethod {
     }
 
     try {
-        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::$SecurityProtocol
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 
         $splatRestMethodParameters = @{
             Uri = $Uri
@@ -231,7 +218,7 @@ function ConvertTo-RawDataDepartmentObject {
     Converts the departments objects to a raw data department object
 
     .DESCRIPTION
-    Converts the departments objects to a raw data department object that can be imported into HelloID
+    Converts the departments objects to a [RawDataDepartmentObject] that can be imported into HelloID
 
     .PARAMETER Departments
     The list of departments from ADP Workforce
@@ -249,15 +236,31 @@ function ConvertTo-RawDataDepartmentObject {
     process {
         [System.Collections.Generic.List[object]]$listDepartments = @()
 
-        foreach ($department in $department.organizationDepartments) {
+        foreach ($department in $Departments.organizationDepartments) {
+            for ($i = 0; $i -lt $department.auxilliaryFields.Length; $i++) {
+                foreach ($auxField in $department.auxilliaryFields){
+                    $auxFieldObj = [PSCustomObject]@{
+                        FieldName = $auxField[$i].NameCode.codeValue
+                        FieldCode = $auxField[$i].stringValue
+                    }
+                }
+            }
+
             $departmentObj = [PSCustomObject]@{
-                ExternalId = $department.departmentCode
-                DisplayName = $department.departmentCode
-                ParentDepartmentCode = $department.parentDepartmentCode
-                DepartmentCode = $department.departmentCode
+                ExternalId = $department.departmentCode.codeValue
+                DisplayName = $department.departmentCode.longName
+                ParentDepartmentCode = $department.parentDepartmentCode.codeValue
                 DepartmentDescription = $department.departmentDescription
+                AssignedLocation = @{
+                    StreetName = $department.assignedLocation.streetName
+                    Number = $department.assignedLocation.buildingNumber
+                    PostalCode = $department.assignedLocation.postalCode
+                    CityName = $department.assignedLocation.cityName
+                    Unit = $department.assignedLocation.unit
+                }
                 ActiveIndicator = $department.activeIndicator
                 EffectiveDate = $department.effectiveDate
+                AuxilliaryFields = $auxFieldObj
             }
             $listDepartments.Add($departmentObj)
         }
@@ -267,34 +270,6 @@ function ConvertTo-RawDataDepartmentObject {
 #EndRegion
 
 #Region Script
-<#
-.SYNOPSIS
-Retrieves the Departments from ADP Workforce
-
-.DESCRIPTION
-Retrieves the Departments from ADP Workforce
-
-.PARAMETER CientID
-The ClientID for the ADP Workforce environment. This will be provided by ADP
-
-.PARAMETER ClientSecret
-The ClientSecret for the ADP Workforce environment. This will be provided by ADP
-
-.PARAMETER Certificate
-The private key of the x.509 certificate that's used to generate a ClientID and ClientSecret and for activating the required API's.
-
-.PARAMETER ProxyServer
-The URL (or IP Address) to the ProxyServer in the network. Leave empty if no ProxyServer is being used
-
-.PARAMETER SecurityProtocol
-The encprytion protocol used when sending data across the network. The default is set to TLS1.2
-#>
-$SplatADPGetWorkers = @{
-    ClientID = ''
-    ClientSecret = ''
-    Certificate = ''
-    ProxyServer =  ''
-    SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
-}
-Get-ADPDepartments @SplatADPGetWorkers
+$connectionSettings = ConvertFrom-Json $configuration
+Get-ADPDepartments -Configuration $connectionSettings
 #EndRegion
