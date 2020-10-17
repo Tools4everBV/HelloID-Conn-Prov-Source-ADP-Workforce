@@ -2,10 +2,9 @@
 
 ## This is a work in progress
 
-This connector must be used 'OnPremise'.
-![image](./assets/hid.png)
+The 'HelloID-Conn-Prov-Source-ADP-Workforce' connector needs to be executed 'on-premises'. Make sure you have at least 'Windows PowerShell 5.1' installed on the server where the 'HelloID agent and provisioing agent' are running, and that the 'Execute on-premises' switch is toggled.
 
-Make sure you have at least PowerShell 5.1 installed.
+Note that the 'HelloID-Conn-Prov-Source-ADP-Workforce' only supports an ADP Workforce enviroment implemented according to standards as specified for the European market. <https://github.com/marketplace-esi/postman-samples>
 
 ### Todo
 
@@ -22,7 +21,8 @@ Make sure you have at least PowerShell 5.1 installed.
     - API scoping
     - API discovery
     - Paging
-    - Known errors
+- PowerShell functions
+- Setup the PowerShell connector
 
 ## Introduction
 
@@ -37,13 +37,19 @@ ___The ADP Workforce source connector can only be used in conjunction with the H
 | _API_ | _Description_|
 | --- | ----------- |
 | _WorkerDemographics_ | _Contains the employees personal and contract data_ |
-| _Departments_ | _Contains data about the organisation structure_ |
-| _CostCenters_ | _Contains data about the costcenter structure_ |
+| _OrganizationDepartments_ | _Contains data about the organisation structure_ |
+
 ---
 
 ## Prerequisites
 
-The connector depends on PowerShell 5.1.
+- Windows PowerShell 5.1 installed on the server where the 'HelloID agent and provisioing agent' are running.
+
+- The public key *.pfx certificate belonging to the X.509 certificate that's used to activate the required API's.
+
+- The 'Execute on-premises' switch on the 'System' tab is toggled.
+
+![image](./assets/hid.png)
 
 ## Getting started
 
@@ -120,12 +126,42 @@ Invoke-RestMethod 'https://api.dex.adp.com/help/v1/apis' -Method 'GET' -Headers 
 
 Paging is only supported by ADP on the 'worker-demograpics' endpoint. Paging is not yet implemented in the connector.
 
+## PowerShell functions
+
+All PowerShell functions have commentBased help. Both in the sourcecode and within the Github repository. <https://github.com/Tools4everBV/HelloID-Conn-Prov-Source-ADP-Workforce/tree/main/docs/en-US>
+
+### Sample data
+
+If you want to customize the connector according to your own needs, you can use the demo data from ADP. <https://github.com/marketplace-esi/postman-samples/blob/master/workforce/hr/workers-v2-demographics/success/workers-v2-demographics-al-workers-http-200-response.json>
+
+The connector configuration supports a person import from a JSON file.
+
+### Usage in VSCode
+
+If you need to test your code in VSCode, make sure to create a _'$connectionSettings'_ object containing the following fields:
+
+```json
+$connectionSettings = @{
+    BaseUrl = ''
+    ClientID = ''
+    ClientSecret = ''
+    Certificate = ''
+    ProxyServer = ''
+    JsonFile = ''
+    ImportFile = $true
+}
+```
+
+To execute to code, use the following command:
+
+```powershell
+Get-ADPWorkers -Configuration $connectionSettings
+```
+
 ## Setup the PowerShell connector
 
-### Persons.ps1
+1. Add a new 'Source System' to HelloID and make sure to import all the neccasary files.
 
-Note that this connector is based on a test environment provided by ADP.
-
-In order to use the connector, you might need to make some changes in the ___ConvertTo-RawDataPersonObject___ function, according to your ADP Workforce environment.
+2. Fill in the required fields on the 'Configuration' tab.
 
 ---
