@@ -15,9 +15,6 @@ function Get-ADPWorkers {
 
     .PARAMETER ConfigurationSettings
     The ConfigurationSettings set on the System configuration tab within HelloID
-
-    .OUTPUTS
-    A list of workers (each as a RawDataPersonObject) converted to JSON that can be imported into HelloID Provisioning
     #>
     [CmdletBinding()]
     param (
@@ -90,31 +87,32 @@ function Get-ADPAccessToken {
     To get access to all available API's, set the scope to: 'api
 
     .EXAMPLE
-    Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_Secret' -Certifcate 'Customer_ADP_Dev.pfx'
+    Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_Secret' -Certifcate 'Customer_ADP_Dev.pfx' -ApiScope 'api'
 
     Retrieves an accesstoken that is authenticated for all API's.
 
     .EXAMPLE
-    Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_Secret' -Certifcate 'Customer_ADP_Dev.pfx' -ApiScope 'worker-demographics, organizational-departsments'
+    Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_Secret' -Certifcate 'Customer_ADP_Dev.pfx' -ApiScope 'worker-demographics, organizational-departments'
 
     Retrieves an accesstoken that is authenticated for the worker-demographics' and 'organizational-departsments' API
-
-    .OUTPUTS
-    The AccessToken in JSON format as returned by the <Invoke-RestMethod> cmdlet
     #>
     [CmdletBinding()]
     param (
+        [Parameter(Mandatory)]
         [String]
         $CientID,
 
+        [Parameter(Mandatory)]
         [SecureString]
         $ClientSecret,
 
+        [Parameter(Mandatory)]
         [String]
         $Certifcate,
 
+        [Parameter(Mandatory)]
         [String]
-        $ApiScope = 'api'
+        $ApiScope
     )
 
     $authorization = "$($CientID):$($ClientSecret)"
@@ -163,9 +161,6 @@ function Invoke-ADPRestMethod {
     Invoke-ADPRestMethod -Uri 'https://test-api.adp.com/hr/v2/worker-demographics' -Method 'GET' -AccessToken '0000-0000-0000-0000'
 
     Returns the raw JSON data containing all workers from ADP Workforce
-
-    .OUTPUTS
-    The raw JSON structure as returned by the <Invoke-RestMethod> cmdlet
     #>
     [CmdletBinding()]
     param(
@@ -211,7 +206,7 @@ function Invoke-ADPRestMethod {
             Proxy = $proxy
             UseBasicParsing = $true
         }
-        Invoke-RestMethod @splatRestMethodParameters      
+        Invoke-RestMethod @splatRestMethodParameters
     } catch {
         $PSCmdlet.ThrowTerminatingError($PSItem)
     }
@@ -223,7 +218,7 @@ function ConvertTo-RawDataPersonObject {
     Converts the ADP Worker object to a raw data object
 
     .DESCRIPTION
-    Converts the ADP Worker object to a raw data object that can be imported into HelloID
+    Converts the ADP Worker object to a [RawDataPersonObject] that can be imported into HelloID
 
     .PARAMETER Workers
     The list of Workers from ADP Workforce
@@ -267,7 +262,6 @@ function ConvertTo-RawDataPersonObject {
                         FormattedNumer = $worker.businessCommunication.mobiles[$i].formattedNumber
                     }
                 }
-
             }
 
             $workerObj = [PSCustomObject]@{
@@ -369,13 +363,33 @@ function ConvertTo-RawDataPersonObject {
 function Select-CustomFields {
     <#
     .SYNOPSIS
-    Flattens the customFieldGroup array object
+    Flattens the [worker.customFieldGroup] array object
 
     .DESCRIPTION
-    Flattens the customFieldGroup array to a hashtable
+    Flattens the [worker.customFieldGroup] array
 
     .PARAMETER CustomFields
     The StringFields array containing the customFields for a worker or assignment
+
+    .EXAMPLE
+    PS C:\> $worker.customFieldGroup
+
+    stringFields
+    ------------
+    {@{nameCode=; stringValue=Nikolai}, @{nameCode=; stringValue=}, @{nameCode=; stringValue=RTM}, @{nameCode=; stringValue=tiva}...}
+
+    PS C:\> Select-CustomFields -CustomFields $worker.customFieldGroup
+
+    partnerFamilyName1        : Nikolai     
+    partnerFamilyName1Prefix  :
+    partnerInitials           : RTM
+    naamSamenstelling         : tiva        
+    samengesteldeNaam         : NDS Burghout
+    loginName                 :
+    verwijzendWerknemernummer : P001        
+    leefvormCode              :
+
+    Returns a PSCustomObject containing the customFields from the [worker.customFieldGroup] object
     #>
     [CmdletBinding()]
     param (
@@ -392,7 +406,6 @@ function Select-CustomFields {
     $CustomFields | Select-Object -Property $properties
 }
 #EndRegion
-
 
 #Region Script
 $connectionSettings = ConvertFrom-Json $configuration
