@@ -1,7 +1,7 @@
 #####################################################
 # HelloID-Conn-Prov-SOURCE-ADP-Workforce-Persons
 # 
-# Version: 1.0.1
+# Version: 1.0.2
 #####################################################
 
 #Region External functions
@@ -14,11 +14,15 @@ function Get-ADPWorkers {
     Retrieves the Workers and WorkerAssignments from ADP Workforce
 
     .PARAMETER ConfigurationSettings
-    The ConfigurationSettings set on the System configuration tab
+    The ConfigurationSettings set on the System configuration tab within HelloID
+
+    .OUTPUTS
+    A list of workers (each as a RawDataPersonObject) converted to JSON that can be imported into HelloID Provisioning
     #>
     [CmdletBinding()]
     param (
-        [Object]
+        [Parameter(Mandatory)]
+        [PSObject]
         $ConfigurationSettings
     )
 
@@ -26,7 +30,7 @@ function Get-ADPWorkers {
         if(!$($ConfigurationSettings.ImportFile)){
             $clientSecretBstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($ConfigurationSettings.CLientSecret))
             $clientSecretString = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($clientSecretBstr)
-            $accessToken = Get-ADPAccessToken -CientID $($ConfigurationSettings.ClientID) -ClientSecret $clientSecretString -Certifcate $($ConfigurationSettings.Certificate)
+            $accessToken = Get-ADPAccessToken -CientID $($ConfigurationSettings.ClientID) -ClientSecret $clientSecretString -Certifcate $($ConfigurationSettings.Certificate) -ApiScope $($ConfigurationSettings.ApiScope)
         }
     } catch [System.Net.WebException] {
         $webEx = $PSItem
@@ -65,10 +69,11 @@ function Get-ADPWorkers {
 function Get-ADPAccessToken {
     <#
     .SYNOPSIS
-    Retrieves an AccessToken from the ADP API
+    Retrieves an AccessToken from the ADP API using the standard <Invoke-RestMethod> cmdlet
 
     .DESCRIPTION
-    The ADP Workforce API's uses OAuth for authentication\authorization. Before data can be retrieved from the API's, an AccessToken has to obtained. The AccessToken is used for all consecutive calls to the ADP Workforce API's
+    The ADP Workforce API's uses OAuth for authentication\authorization.
+    Before data can be retrieved from the API's, an AccessToken has to obtained. The AccessToken is used for all consecutive calls to the ADP Workforce API's
 
     .PARAMETER CientID
     The ClientID for the ADP Workforce environment. This will be provided by ADP
@@ -77,16 +82,25 @@ function Get-ADPAccessToken {
     The ClientSecret for the ADP Workforce environment. This will be provided by ADP
 
     .PARAMETER Certificate
-    The private key of the x.509 certificate that's used to generate a ClientID and ClientSecret and for activating the required API's. 
+    The location to the the private key of the x.509 certificate on the server where the HelloID agent and provisioning agent are running
+    Make sure to use the private key for the certificate that's used to generate a ClientID and ClientSecret and for activating the required API's
+
+    .PARAMETER ApiScope
+    The name of the API you need access to. For instance, 'worker-demographics'. You can specficy more API's by separating them with a comma
+    To get access to all available API's, set the scope to: 'api
 
     .EXAMPLE
     Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_Secret' -Certifcate 'Customer_ADP_Dev.pfx'
 
-    {
-        "access_token": "1",
-        "token_type": "2",
-        "expires_in": "2"
-    }
+    Retrieves an accesstoken that is authenticated for all API's.
+
+    .EXAMPLE
+    Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_Secret' -Certifcate 'Customer_ADP_Dev.pfx' -ApiScope 'worker-demographics, organizational-departsments'
+
+    Retrieves an accesstoken that is authenticated for the worker-demographics' and 'organizational-departsments' API
+
+    .OUTPUTS
+    The AccessToken in JSON format as returned by the <Invoke-RestMethod> cmdlet
     #>
     [CmdletBinding()]
     param (
@@ -96,8 +110,11 @@ function Get-ADPAccessToken {
         [SecureString]
         $ClientSecret,
 
-        [X509Certificate]
-        $Certifcate
+        [String]
+        $Certifcate,
+
+        [String]
+        $ApiScope = 'api'
     )
 
     $authorization = "$($CientID):$($ClientSecret)"
@@ -107,7 +124,7 @@ function Get-ADPAccessToken {
         "Cache-Control" = "no-cache"
         "Authorization" = "Basic $base64String"
         "Content-Type" = "application/json"
-        "grant_type" = "client_credentials&scope=api"
+        "grant_type" = "client_credentials&scope=$ApiScope"
     }
 
     try {
@@ -125,22 +142,30 @@ function Get-ADPAccessToken {
 function Invoke-ADPRestMethod {
     <#
     .SYNOPSIS
-    Sends and receives data to and from the ADP API's
+    Retrieves data from the ADP API's
 
     .DESCRIPTION
-    Sends and receives data to and from the ADP API's
+    Retrieves data from the ADP API's using the standard <Invoke-RestMethod> cmdlet
 
     .PARAMETER Uri
-    The BaseUri to the ADP Workforce environment
+    The BaseUri to the ADP Workforce environment. For example: https://test-api.adp.com
 
     .PARAMETER Method
-    The CRUD operation for the request. Valid HttpMethods inlcude: GET and POST
+    The CRUD operation for the request. Valid HttpMethods inlcude: GET and POST. Note that the ADP API's needed for the connector will only support 'GET'
 
     .PARAMETER AccessToken
     The AccessToken retrieved by the <Get-ADPAccessToken> function
 
     .PARAMETER ProxyServer
     The URL (or IP Address) to the ProxyServer in the network. Leave empty if no ProxyServer is being used
+
+    .EXAMPLE
+    Invoke-ADPRestMethod -Uri 'https://test-api.adp.com/hr/v2/worker-demographics' -Method 'GET' -AccessToken '0000-0000-0000-0000'
+
+    Returns the raw JSON data containing all workers from ADP Workforce
+
+    .OUTPUTS
+    The raw JSON structure as returned by the <Invoke-RestMethod> cmdlet
     #>
     [CmdletBinding()]
     param(
@@ -152,17 +177,16 @@ function Invoke-ADPRestMethod {
         [String]
         $Method,
 
-        #[Parameter(Mandatory)]
+        [Parameter(Mandatory)]
+        [AllowNull]
+        [AllowEmptyString]
         [String]
         $AccessToken,
 
         [AllowNull()]
         [AllowEmptyString()]
         [String]
-        $ProxyServer,
-
-        [System.Net.SecurityProtocolType]
-        $SecurityProtocol
+        $ProxyServer
     )
 
     $headers = @{
@@ -178,7 +202,7 @@ function Invoke-ADPRestMethod {
     }
 
     try {
-        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::$SecurityProtocol
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 
         $splatRestMethodParameters = @{
             Uri = $Uri
@@ -218,7 +242,33 @@ function ConvertTo-RawDataPersonObject {
         [System.Collections.Generic.List[object]]$listWorkers = @()
 
         foreach ($worker in $workers.workers) {
-            [System.Collections.Generic.List[object]]$contracts = @()
+
+            if ($null -ne $worker.customFieldGroup.stringFields){
+                $customFieldsWorkerProperties = Select-CustomFields -CustomFields $worker.customFieldGroup
+            }
+
+            if ($null -ne $worker.businessCommunication){
+                for ($i = 0; $i -lt $worker.businessCommunication.emails.Length; $i++) {
+                    $emails = @{
+                        emailAddress = $worker.businessCommunication.emails[$i].emailUri
+                    }
+                }
+
+                for ($i = 0; $i -lt $worker.businessCommunication.landLines.Length; $i++) {
+                    $landLines = @{
+                        Name = $worker.businessCommunication.landLines[$i].nameCode.shortName
+                        FormattedNumer = $worker.businessCommunication.landLines[$i].formattedNumber
+                    }
+                }
+
+                for ($i = 0; $i -lt $worker.businessCommunication.mobiles.Length; $i++) {
+                    $mobiles = @{
+                        Name = $worker.businessCommunication.mobiles[$i].nameCode.shortName
+                        FormattedNumer = $worker.businessCommunication.mobiles[$i].formattedNumber
+                    }
+                }
+
+            }
 
             $workerObj = [PSCustomObject]@{
                 ExternalId = $worker.workerID.idValue 
@@ -242,20 +292,49 @@ function ConvertTo-RawDataPersonObject {
                             Salutation = $worker.person.legalName.preferredSalutation
                         }
                     }
-                    BusinessCommunication = @{
-                        Emails = $worker.businessCommunication.emails
-                        LandLines = $worker.businessCommunication.landlines
-                        Mobiles = $worker.businessCommunication.mobiles
-                    }
                 }
+                BusinessCommunication = @{
+                    EmailAddress = $emails.emailAddress
+                    LandLine = $landLines
+                    Mobile = $mobiles
+                }
+                Gender = $worker.person.genderCode.codeValue
                 OriginalHireDate = $worker.WorkerDates.originalHireDate
                 TerminationDate = $worker.WorkerDates.terminationDate
                 RetirementDate = $worker.WorkerDates.retirementDate
+                CustomFields = $customFieldsWorkerProperties
                 Contracts = $contracts
             }
 
             if ($null -ne $worker.workAssignments){
-                foreach ($assignment in $worker.workAssignments){   
+                [System.Collections.Generic.List[object]]$contracts = @()
+
+                foreach ($assignment in $worker.workAssignments){
+
+                    if ($null -ne $assignment.reportsTo){
+                        for ($i = 0; $i -lt $assignment.reportsTo.Length; $i++) {
+                            $manager = @{
+                                FormattedName = $assignment.reportsTo[$i].reportsToWorkerName.formattedName
+                                WorkerID = $assignment.reportsTo[$i].workerID.idValue
+                                AssociateOID = $assignment.reportsTo[$i].associateOID
+                                RelationShipCode = $assignment.reportsTo[$i].reportsToRelationshipCode.longName
+                            }
+                        }
+                    }
+
+                    if ($null -ne $assignment.customFieldGroup){
+                        $customFieldsAssignmentProperties = Select-CustomFields -CustomFields $assignment.customFieldGroup
+                    }
+
+                    if ($null -ne $assignment.homeOrganizationalUnits){
+                        for ($i = 0; $i -lt $assignment.homeOrganizationalUnits.Length; $i++) {
+                            $homeOrganizationalUnit = @{
+                                Name = $assignment.homeOrganizationalUnits[$i].nameCode.longName
+                                Code = $assignment.homeOrganizationalUnits[$i].nameCode.codeValue
+                            }
+                        }
+                    }
+
                     $assignmentObj = [PSCustomObject]@{
                         PrimaryIndicator = $assignment.primaryIndicator
                         ActualStartDate = $assignment.actualStartDate
@@ -265,18 +344,18 @@ function ConvertTo-RawDataPersonObject {
                         ManagementPosition = $assignment.managementPositionIndicator
                         PositionId = $assignment.positionID
                         PositionTitle = $assignment.PositionTitle
-                        HomeOrganizationalUnit = $assignment.homeOrganizationalUnits
-                        HomeWorkLocation = $assignment.homeWorkLocation.nameCode
-                        AssignedWorkLocation = $assignment.assignedWorkLocations
+                        HomeOrganizationalUnit = $homeOrganizationalUnit
+                        #HomeWorkLocation = $assignment.homeWorkLocation.nameCode #Object Empty
+                        #AssignedWorkLocation = $assignment.assignedWorkLocations #Object Empty
                         ItemId = $assignment.itemID
                         PayrollGroupCode = $assignment.payrollGroupCode
                         PayrollFileNumber = $assignment.payrollFileNumber
                         JobCode = $assignment.jobCode.longName
                         StandardHours = $assignment.standardHours.hoursQuantity
                         StandardHoursQuantity = $assignment.standardHours.unitCode.longName
-                        AssignmentCostCenters = $assignment.assignmentCostCenters
-                        ReportsTo = $assignment.reportsTo
-                        CustomFieldsGroup = $assignment.customFieldGroup
+                        #AssignmentCostCenters = $assignment.assignmentCostCenters #Object Empty
+                        ReportsTo = $manager
+                        CustomFields = $customFieldsAssignmentProperties
                     }
                     $contracts.Add($assignmentObj)
                 }
@@ -286,7 +365,34 @@ function ConvertTo-RawDataPersonObject {
         $listWorkers
     }
 }
+
+function Select-CustomFields {
+    <#
+    .SYNOPSIS
+    Flattens the customFieldGroup array object
+
+    .DESCRIPTION
+    Flattens the customFieldGroup array to a hashtable
+
+    .PARAMETER CustomFields
+    The StringFields array containing the customFields for a worker or assignment
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [PSObject]
+        $CustomFields
+    )
+
+    $properties = @(
+        foreach ($Attribute in $CustomFields.stringFields) {
+            @{ Name = "$($Attribute.nameCode.codeValue)"; Expression = { "$($Attribute.stringValue)" }.GetNewClosure()}
+        }
+    )
+    $CustomFields | Select-Object -Property $properties
+}
 #EndRegion
+
 
 #Region Script
 $connectionSettings = ConvertFrom-Json $configuration
