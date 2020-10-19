@@ -157,19 +157,26 @@ The connector configuration supports an import from a JSON file for both persons
 
 ### Usage in VSCode
 
-If you need to test your code in VSCode, make sure to create a _'$connectionSettings'_ object containing the following fields:
+If you need to test your code in VSCode, make sure to fill the _'$connectionSettings'_ object containing the following fields:
 
 ```powershell
-$connectionSettings = @{
-    WorkerJson = '.\test\workers.json'
-    ImportFile = $true
+$splatGetADPWorkers = @{
+    BaseUrl = ''
+    ClientID = ''
+    ClientSecret = ''
+    CertificatePath = ''
+    CertificatePassword = ''
+    ProxyServer = ''
+    WorkerJson = ''
+    ImportFile = ''
 }
 ```
+Comment out the _'$connectionSettings = ConvertFrom-Json $configuration'_ section.
 
 To execute to code, use the following command:
 
 ```powershell
-Get-ADPWorkers -Configuration $connectionSettings
+Get-ADPWorkers @splatGetADPWorkers
 ```
 
 ## Setup the PowerShell connector
