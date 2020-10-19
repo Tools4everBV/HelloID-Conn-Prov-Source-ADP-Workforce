@@ -25,7 +25,7 @@ Retrieves an accesstoken that is authenticated for the 'worker-demographics' and
 
 ## PARAMETERS
 
-### -CientID
+### -ClientID
 The ClientID for the ADP Workforce environment.
 This will be provided by ADP
 
