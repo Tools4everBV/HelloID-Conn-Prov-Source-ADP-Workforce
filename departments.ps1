@@ -54,9 +54,7 @@ function Get-ADPDepartments {
 
         [String]
         $CertificatePassword,
-
-        [AllowNull()]
-        [AllowEmptyString()]
+        
         [String]
         $ProxyServer,
 
