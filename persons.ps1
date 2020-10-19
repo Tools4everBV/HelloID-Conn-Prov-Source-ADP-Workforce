@@ -1,7 +1,7 @@
 #####################################################
 # HelloID-Conn-Prov-SOURCE-ADP-Workforce-Persons
-# 
-# Version: 1.0.2
+#
+# Version: 1.0.3
 #####################################################
 
 #Region External functions
@@ -25,9 +25,7 @@ function Get-ADPWorkers {
 
     try {
         if(!$($ConfigurationSettings.ImportFile)){
-            $clientSecretBstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($ConfigurationSettings.CLientSecret))
-            $clientSecretString = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($clientSecretBstr)
-            $accessToken = Get-ADPAccessToken -CientID $($ConfigurationSettings.ClientID) -ClientSecret $clientSecretString -Certifcate $($ConfigurationSettings.Certificate) -ApiScope $($ConfigurationSettings.ApiScope)
+            $accessToken = Get-ADPAccessToken -CientID $($ConfigurationSettings.ClientID) -ClientSecret $($configuration.ClientSecret) -CertifcatePath $($ConfigurationSettings.CertificatePath) -CertificatePassword ($ConfigurationSettings.CertificatePassword)
         }
     } catch [System.Net.WebException] {
         $webEx = $PSItem
@@ -35,18 +33,18 @@ function Get-ADPWorkers {
         $PSCmdlet.WriteWarning("Could not retrieve ADP AccessToken. Error: '$($errorObj.applicationCode.message)' Code: '$($errorObj.applicationCode.code)'")
     } catch [System.Exception] {
         $ex = $PSItem
-        $PSCmdlet.WriteWarning("Could not retrieve ADP AccessToken. Error: '$($ex.Message)'")
+        $PSCmdlet.WriteWarning("Could not retrieve ADP AccessToken. Error: '$($ex.Exception.Message)'")
     }
 
     try {
         if ($($ConfigurationSettings.ImportFile)){
-            Get-Content $($ConfigurationSettings.JsonFile) | ConvertFrom-Json | ConvertTo-RawDataPersonObject | ConvertTo-Json -Depth 100
+            Get-Content $($ConfigurationSettings.WorkerJson) | ConvertFrom-Json | ConvertTo-RawDataPersonObject | ConvertTo-Json -Depth 100
         } else {
             $splatADPRestMethodParams = @{
                 Uri = "$($ConfigurationSettings.BaseUrl)/hr/v2/worker-demographics"
                 Method = 'GET'
                 AccessToken = $accessToken
-                ProxyServer = $ProxyServer
+                ProxyServer = $($configurationSettings.ProxyServer)
                 SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
             }
             Invoke-ADPRestMethod @splatADPRestMethodParams | ConvertTo-RawDataPersonObject | ConvertTo-Json -Depth 100
@@ -57,7 +55,7 @@ function Get-ADPWorkers {
         $PSCmdlet.WriteError("Could not retrieve ADP Workers. Error: '$($errorObj.applicationCode.message)' Code: '$($errorObj.applicationCode.code)'")
     } catch [System.Exception] {
         $ex = $PSItem
-        $PSCmdlet.WriteWarning("Could not retrieve ADP Workers. Error: '$($ex.Message)'")
+        $PSCmdlet.WriteWarning("Could not retrieve ADP Workers. Error: '$($ex.Exception.Message)'")
     }
 }
 #EndRegion
@@ -70,7 +68,7 @@ function Get-ADPAccessToken {
 
     .DESCRIPTION
     The ADP Workforce API's uses OAuth for authentication\authorization.
-    Before data can be retrieved from the API's, an AccessToken has to obtained. The AccessToken is used for all consecutive calls to the ADP Workforce API's
+    Before data can be retrieved from the API's, an AccessToken has to obtained. The AccessToken is used for all consecutive calls to the ADP Workforce API's. Tokens only have access to a certain API scope. Default the scope is set to: 'worker-demographics organization-departments'. Data outside this scope from other API's cannot be retrieved
 
     .PARAMETER CientID
     The ClientID for the ADP Workforce environment. This will be provided by ADP
@@ -78,23 +76,17 @@ function Get-ADPAccessToken {
     .PARAMETER ClientSecret
     The ClientSecret for the ADP Workforce environment. This will be provided by ADP
 
-    .PARAMETER Certificate
+    .PARAMETER CertificatePath
     The location to the the private key of the x.509 certificate on the server where the HelloID agent and provisioning agent are running
     Make sure to use the private key for the certificate that's used to generate a ClientID and ClientSecret and for activating the required API's
 
-    .PARAMETER ApiScope
-    The name of the API you need access to. For instance, 'worker-demographics'. You can specficy more API's by separating them with a comma
-    To get access to all available API's, set the scope to: 'api
+    .PARAMETER CertificatePassword
+    The password for the *.pfx certificate
 
     .EXAMPLE
-    Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_Secret' -Certifcate 'Customer_ADP_Dev.pfx' -ApiScope 'api'
+    Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_Secret' -Certifcate 'Customer_ADP_Dev.pfx'
 
-    Retrieves an accesstoken that is authenticated for all API's.
-
-    .EXAMPLE
-    Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_Secret' -Certifcate 'Customer_ADP_Dev.pfx' -ApiScope 'worker-demographics, organizational-departments'
-
-    Retrieves an accesstoken that is authenticated for the worker-demographics' and 'organizational-departsments' API
+    Retrieves an accesstoken that is authenticated for the 'worker-demographics' and 'organizational-departments' API's
     #>
     [CmdletBinding()]
     param (
@@ -103,26 +95,28 @@ function Get-ADPAccessToken {
         $CientID,
 
         [Parameter(Mandatory)]
-        [SecureString]
+        [String]
         $ClientSecret,
 
         [Parameter(Mandatory)]
         [String]
-        $Certifcate,
+        $CertificatePath,
 
         [Parameter(Mandatory)]
         [String]
-        $ApiScope
+        $CertificatePassword
     )
 
-    $authorization = "$($CientID):$($ClientSecret)"
+    $authorization = "$($CientID):$($clientSecretString)"
     $base64String = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($authorization))
+
+    $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($CertificatePath, $CertificatePassword)
 
     $headers = @{
         "Cache-Control" = "no-cache"
         "Authorization" = "Basic $base64String"
         "Content-Type" = "application/json"
-        "grant_type" = "client_credentials&scope=$ApiScope"
+        "grant_type" = "client_credentials&scope=worker-demographics organizational-departments"
     }
 
     try {
@@ -130,6 +124,7 @@ function Get-ADPAccessToken {
             Uri = 'https://accounts.dex.adp.com/auth/oauth/v2/token'
             Method = 'POST'
             Headers = $headers
+            Certificate = $certificate
         }
         Invoke-RestMethod @splatRestMethodParameters
     } catch {
@@ -222,7 +217,11 @@ function ConvertTo-RawDataPersonObject {
 
     .PARAMETER Workers
     The list of Workers from ADP Workforce
+
+    .OUTPUTS
+    System.Object[]
     #>
+    [OutputType([System.Object[]])]
     [CmdletBinding()]
     param (
         [Parameter(
@@ -243,29 +242,25 @@ function ConvertTo-RawDataPersonObject {
             }
 
             if ($null -ne $worker.businessCommunication){
-                for ($i = 0; $i -lt $worker.businessCommunication.emails.Length; $i++) {
-                    $emails = @{
-                        emailAddress = $worker.businessCommunication.emails[$i].emailUri
-                    }
+
+                # The emails array (if not empty) always contains 1 item
+                if ($null -ne $worker.businessCommunication.emails){
+                    $EmailAddress = $worker.businessCommunication.emails[0].emailUri
                 }
 
-                for ($i = 0; $i -lt $worker.businessCommunication.landLines.Length; $i++) {
-                    $landLines = @{
-                        Name = $worker.businessCommunication.landLines[$i].nameCode.shortName
-                        FormattedNumer = $worker.businessCommunication.landLines[$i].formattedNumber
-                    }
+                # The landlines array (if not empty) always contains 1 item
+                if ($null -ne $worker.businessCommunication.landLines){
+                    $PhoneNumberFixed = $worker.businessCommunication.landLines[0].formattedNumber
                 }
 
-                for ($i = 0; $i -lt $worker.businessCommunication.mobiles.Length; $i++) {
-                    $mobiles = @{
-                        Name = $worker.businessCommunication.mobiles[$i].nameCode.shortName
-                        FormattedNumer = $worker.businessCommunication.mobiles[$i].formattedNumber
-                    }
+                # The mobiles array (if not empty) always contains 1 item
+                if ($null -ne $worker.businessCommunication.mobiles){
+                    $PhoneNumberMobile = $worker.businessCommunication.mobiles[0].formattedNumber
                 }
             }
 
             $workerObj = [PSCustomObject]@{
-                ExternalId = $worker.workerID.idValue 
+                ExternalId = $worker.workerID.idValue
                 DisplayName = $worker.person.legalName.formattedName
                 AssocciateOID = $worker.associateOID
                 WorkerID = $worker.workerID.idValue
@@ -288,9 +283,9 @@ function ConvertTo-RawDataPersonObject {
                     }
                 }
                 BusinessCommunication = @{
-                    EmailAddress = $emails.emailAddress
-                    LandLine = $landLines
-                    Mobile = $mobiles
+                    EmailAddress = $EmailAddress
+                    LandLine = $PhoneNumberFixed
+                    Mobile = $PhoneNumberMobile
                 }
                 Gender = $worker.person.genderCode.codeValue
                 OriginalHireDate = $worker.WorkerDates.originalHireDate
@@ -305,13 +300,15 @@ function ConvertTo-RawDataPersonObject {
 
                 foreach ($assignment in $worker.workAssignments){
 
+                    # Assignments may contain multiple managers (per assignment). There's no way to specify which manager is primary
+                    # We always select the first one in the array
                     if ($null -ne $assignment.reportsTo){
                         for ($i = 0; $i -lt $assignment.reportsTo.Length; $i++) {
                             $manager = @{
-                                FormattedName = $assignment.reportsTo[$i].reportsToWorkerName.formattedName
-                                WorkerID = $assignment.reportsTo[$i].workerID.idValue
-                                AssociateOID = $assignment.reportsTo[$i].associateOID
-                                RelationShipCode = $assignment.reportsTo[$i].reportsToRelationshipCode.longName
+                                FormattedName = $assignment.reportsTo[0].reportsToWorkerName.formattedName
+                                WorkerID = $assignment.reportsTo[0].workerID.idValue
+                                AssociateOID = $assignment.reportsTo[0].associateOID
+                                RelationShipCode = $assignment.reportsTo[0].reportsToRelationshipCode.longName
                             }
                         }
                     }
@@ -380,13 +377,13 @@ function Select-CustomFields {
 
     PS C:\> Select-CustomFields -CustomFields $worker.customFieldGroup
 
-    partnerFamilyName1        : Nikolai     
+    partnerFamilyName1        : Nikolai
     partnerFamilyName1Prefix  :
     partnerInitials           : RTM
-    naamSamenstelling         : tiva        
+    naamSamenstelling         : tiva
     samengesteldeNaam         : NDS Burghout
     loginName                 :
-    verwijzendWerknemernummer : P001        
+    verwijzendWerknemernummer : P001
     leefvormCode              :
 
     Returns a PSCustomObject containing the customFields from the [worker.customFieldGroup] object
@@ -399,8 +396,8 @@ function Select-CustomFields {
     )
 
     $properties = @(
-        foreach ($Attribute in $CustomFields.stringFields) {
-            @{ Name = "$($Attribute.nameCode.codeValue)"; Expression = { "$($Attribute.stringValue)" }.GetNewClosure()}
+        foreach ($attribute in $CustomFields.stringFields) {
+            @{ Name = "$($attribute.nameCode.codeValue)"; Expression = { "$($attribute.stringValue)" }.GetNewClosure()}
         }
     )
     $CustomFields | Select-Object -Property $properties
