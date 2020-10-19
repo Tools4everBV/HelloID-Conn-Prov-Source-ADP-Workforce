@@ -1,7 +1,7 @@
 #####################################################
 # HelloID-Conn-Prov-SOURCE-ADP-Workforce-Departments
-# 
-# Version: 1.0.2
+#
+# Version: 1.0.3
 #####################################################
 
 #Region External functions
@@ -25,9 +25,7 @@ function Get-ADPDepartments {
 
     try {
         if(!$($ConfigurationSettings.ImportFile)){
-            $clientSecretBstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($ConfigurationSettings.CLientSecret))
-            $clientSecretString = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($clientSecretBstr)
-            $accessToken = Get-ADPAccessToken -CientID $($ConfigurationSettings.ClientID) -ClientSecret $clientSecretString -Certifcate $($ConfigurationSettings.Certificate) -ApiScope $($ConfigurationSettings.ApiScope)
+            $accessToken = Get-ADPAccessToken -CientID $($ConfigurationSettings.ClientID) -ClientSecret $($configuration.ClientSecret) -CertifcatePath $($ConfigurationSettings.CertificatePath) -CertificatePassword ($ConfigurationSettings.CertificatePassword)
         }
     } catch [System.Net.WebException] {
         $webEx = $PSItem
@@ -35,18 +33,18 @@ function Get-ADPDepartments {
         $PSCmdlet.WriteWarning("Could not retrieve ADP AccessToken. Error: '$($errorObj.applicationCode.message)' Code: '$($errorObj.applicationCode.code)'")
     } catch [System.Exception] {
         $ex = $PSItem
-        $PSCmdlet.WriteWarning("Could not retrieve ADP AccessToken. Error: '$($ex.Message)'")
+        $PSCmdlet.WriteWarning("Could not retrieve ADP AccessToken. Error: '$($ex.Exception.Message)'")
     }
 
     try {
         if ($($ConfigurationSettings.ImportFile)){
-            Get-Content $($ConfigurationSettings.JsonFile) | ConvertFrom-Json | ConvertTo-RawDataDepartmentObject | ConvertTo-Json -Depth 100
+            Get-Content $($ConfigurationSettings.DepartmentJson) | ConvertFrom-Json | ConvertTo-RawDataDepartmentObject | ConvertTo-Json -Depth 100
         } else {
             $splatADPRestMethodParams = @{
                 Uri = "$($ConfigurationSettings.BaseUrl)/core/v2/organization-departments"
                 Method = 'GET'
                 AccessToken = $accessToken
-                ProxyServer = $ProxyServer
+                ProxyServer = $($configurationSettings.ProxyServer)
                 SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
             }
             Invoke-ADPRestMethod @splatADPRestMethodParams | ConvertTo-RawDataPersonObject | ConvertTo-Json -Depth 100
@@ -57,7 +55,7 @@ function Get-ADPDepartments {
         $PSCmdlet.WriteError("Could not retrieve ADP Departments. Error: '$($errorObj.applicationCode.message)' Code: '$($errorObj.applicationCode.code)'")
     } catch [System.Exception] {
         $ex = $PSItem
-        $PSCmdlet.WriteWarning("Could not retrieve ADP Departments. Error: '$($ex.Message)'")
+        $PSCmdlet.WriteWarning("Could not retrieve ADP Departments. Error: '$($ex.Exception.Message)'")
     }
 }
 #EndRegion
@@ -70,7 +68,7 @@ function Get-ADPAccessToken {
 
     .DESCRIPTION
     The ADP Workforce API's uses OAuth for authentication\authorization.
-    Before data can be retrieved from the API's, an AccessToken has to obtained. The AccessToken is used for all consecutive calls to the ADP Workforce API's
+    Before data can be retrieved from the API's, an AccessToken has to obtained. The AccessToken is used for all consecutive calls to the ADP Workforce API's. Tokens only have access to a certain API scope. Default the scope is set to: 'worker-demographics organization-departments'. Data outside this scope from other API's cannot be retrieved
 
     .PARAMETER CientID
     The ClientID for the ADP Workforce environment. This will be provided by ADP
@@ -78,23 +76,17 @@ function Get-ADPAccessToken {
     .PARAMETER ClientSecret
     The ClientSecret for the ADP Workforce environment. This will be provided by ADP
 
-    .PARAMETER Certificate
+    .PARAMETER CertificatePath
     The location to the the private key of the x.509 certificate on the server where the HelloID agent and provisioning agent are running
     Make sure to use the private key for the certificate that's used to generate a ClientID and ClientSecret and for activating the required API's
 
-    .PARAMETER ApiScope
-    The name of the API you need access to. For instance, 'worker-demographics'. You can specficy more API's by separating them with a comma
-    To get access to all available API's, set the scope to: 'api
+    .PARAMETER CertificatePassword
+    The password for the *.pfx certificate
 
     .EXAMPLE
-    Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_Secret' -Certifcate 'Customer_ADP_Dev.pfx' -ApiScope 'api'
+    Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_Secret' -Certifcate 'Customer_ADP_Dev.pfx'
 
-    Retrieves an accesstoken that is authenticated for all API's.
-
-    .EXAMPLE
-    Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_Secret' -Certifcate 'Customer_ADP_Dev.pfx' -ApiScope 'worker-demographics, organizational-departments'
-
-    Retrieves an accesstoken that is authenticated for the worker-demographics' and 'organizational-departsments' API
+    Retrieves an accesstoken that is authenticated for the 'worker-demographics' and 'organizational-departments' API's
     #>
     [CmdletBinding()]
     param (
@@ -103,26 +95,28 @@ function Get-ADPAccessToken {
         $CientID,
 
         [Parameter(Mandatory)]
-        [SecureString]
+        [String]
         $ClientSecret,
 
         [Parameter(Mandatory)]
         [String]
-        $Certifcate,
+        $CertificatePath,
 
         [Parameter(Mandatory)]
         [String]
-        $ApiScope
+        $CertificatePassword
     )
 
     $authorization = "$($CientID):$($ClientSecret)"
     $base64String = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($authorization))
 
+    $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($CertificatePath, $CertificatePassword)
+
     $headers = @{
         "Cache-Control" = "no-cache"
         "Authorization" = "Basic $base64String"
         "Content-Type" = "application/json"
-        "grant_type" = "client_credentials&scope=$ApiScope"
+        "grant_type" = "client_credentials&scope=worker-demographics organizational-departments"
     }
 
     try {
@@ -130,6 +124,7 @@ function Get-ADPAccessToken {
             Uri = 'https://accounts.dex.adp.com/auth/oauth/v2/token'
             Method = 'POST'
             Headers = $headers
+            Certificate = $certificate
         }
         Invoke-RestMethod @splatRestMethodParameters
     } catch {
@@ -222,7 +217,11 @@ function ConvertTo-RawDataDepartmentObject {
 
     .PARAMETER Departments
     The list of departments from ADP Workforce
+
+    .OUTPUTS
+    System.Object[]
     #>
+    [OutputType([System.Object[]])]
     [CmdletBinding()]
     param (
         [Parameter(
@@ -265,7 +264,7 @@ function ConvertTo-RawDataDepartmentObject {
             $listDepartments.Add($departmentObj)
         }
         $listDepartments
-    }   
+    }
 }
 #EndRegion
 
