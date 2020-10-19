@@ -157,7 +157,7 @@ The connector configuration supports an import from a JSON file for both persons
 
 ### Usage in VSCode
 
-If you need to test your code in VSCode, make sure to fill the _'$connectionSettings'_ object containing the following fields:
+If you need to test your code in VSCode, make sure to fill the _'$splatGetADPWorkers'_ object containing the following fields:
 
 ```powershell
 $splatGetADPWorkers = @{
