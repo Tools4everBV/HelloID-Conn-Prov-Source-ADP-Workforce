@@ -86,7 +86,7 @@ Paging is only supported by ADP for the 'worker-demograpics' endpoint. Paging is
 
 ### Assignments
 
-If a worker has multiple assignments, each assigment will imported in HelloID.
+If a worker has multiple assignments, each assigment will be imported in HelloID.
 
 ### Custom Fields
 
@@ -99,6 +99,10 @@ For instance, the customfield for the _FamilyNamePartner_:
 
 Or the customField for the _ContractHours_:
 ![image](./assets/customFieldContractHours.png)
+
+### Mappings
+
+A basic person and contract mapping is provided. Make sure to further customize these accordingly.
 
 ### Caveats
 
