@@ -6,20 +6,11 @@ Converts the departments objects to a raw data department object
 ## SYNTAX
 
 ```
-ConvertTo-RawDataDepartmentObject [-Workers] <PSObject> [<CommonParameters>]
+ConvertTo-RawDataDepartmentObject [-Departments] <PSObject> [<CommonParameters>]
 ```
 
 ## DESCRIPTION
 Converts the departments objects to a raw data department object that can be imported into HelloID
-
-## EXAMPLES
-
-### Example 1
-```powershell
-PS C:\> {{ Add example code here }}
-```
-
-{{ Add example description here }}
 
 ## PARAMETERS
 
@@ -41,10 +32,6 @@ Accept wildcard characters: False
 ### CommonParameters
 This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
-## INPUTS
-
 ## OUTPUTS
 
-## NOTES
-
-## RELATED LINKS
+### System.Object[]
