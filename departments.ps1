@@ -1,7 +1,7 @@
 #####################################################
 # HelloID-Conn-Prov-SOURCE-ADP-Workforce-Departments
 #
-# Version: 1.0.3
+# Version: 1.0.4
 #####################################################
 
 #Region External functions
@@ -13,14 +13,58 @@ function Get-ADPDepartments {
     .DESCRIPTION
     Retrieves the Departments from ADP Workforce
 
-    .PARAMETER ConfigurationSettings
-    The ConfigurationSettings set on the System configuration tab within HelloID
+    .PARAMETER BaseUrl
+    The BaseUrl to the ADP Workforce environment. For example: https://test-api.adp.com
+
+    .PARAMETER ClientID
+    The ClientID for the ADP Workforce environment. This will be provided by ADP
+
+    .PARAMETER ClientSecret
+    The ClientSecret for the ADP Workforce environment. This will be provided by ADP
+
+    .PARAMETER CertificatePath
+    The location to the the private key of the x.509 certificate on the server where the HelloID agent and provisioning agent are running
+    Make sure to use the private key for the certificate that's used to generate a ClientID and ClientSecret and for activating the required API's
+
+    .PARAMETER CertificatePassword
+    The password for the *.pfx certificate
+
+    .PARAMETER ProxyServer
+    The URL (or IP Address) to the ProxyServer in the network. Leave empty if no ProxyServer is being used
+
+    .PARAMETER ImportFile
+    Use this in combination with the JSON file to test the import of the workers without making API calls to ADP Workforce
+
+    .PARAMETER DepartmentJson
+    The location to the 'JSON file containing the departments' on the server where the HelloID agent and provisioning agent are running
     #>
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory)]
-        [PSObject]
-        $ConfigurationSettings
+        [String]
+        $BaseUrl,
+
+        [String]
+        $ClientID,
+
+        [String]
+        $ClientSecret,
+
+        [String]
+        $CertificatePath,
+
+        [String]
+        $CertificatePassword,
+
+        [AllowNull()]
+        [AllowEmptyString()]
+        [String]
+        $ProxyServer,
+
+        [Bool]
+        $ImportFile,
+
+        [String]
+        $WorkerJson
     )
 
     try {
@@ -270,5 +314,15 @@ function ConvertTo-RawDataDepartmentObject {
 
 #Region Script
 $connectionSettings = ConvertFrom-Json $configuration
-Get-ADPDepartments -Configuration $connectionSettings
+$splatGetADPDepartments = @{
+    BaseUrl = $($connectionSettings.BaseUrl)
+    ClientID = $($connectionSettings.CientID)
+    ClientSecret = $($connectionSettings.ClientSecret)
+    CertificatePath = $($connectionSettings.CertificatePath)
+    CertificatePassword = $($connectionSettings.CertificatePassword)
+    ProxyServer = $($connectionSettings.ProxyServer)
+    DepartmentJson = $($connectionSettings.DepartmentJson)
+    ImportFile = $($connectionSettings.ImportFile)
+}
+Get-ADPWorkers @splatGetADPDepartments
 #EndRegion
