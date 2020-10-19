@@ -2,7 +2,6 @@
   {
     "key": "BaseUrl",
     "type": "input",
-    "defaultValue": "",
     "templateOptions": {
       "label": "BaseUrl",
       "placeholder": "https://test-api.adp.com",
@@ -13,7 +12,6 @@
   {
     "key": "ClientID",
     "type": "input",
-    "defaultValue": "",
     "templateOptions": {
       "label": "ClientID",
       "placeholder": "DEX000",
@@ -24,46 +22,41 @@
   {
     "key": "ClientSecret",
     "type": "input",
-    "defaultValue": "",
     "templateOptions": {
       "label": "ClientSecret",
       "type": "password",
-      "placeholder": "0000-0000-0000-0000",
       "description": "The ClientSecret for the ADP Workforce environment. This will be provided by ADP",
       "required": true
     }
   },
   {
-    "key": "Certificate",
+    "key": "CertificatePath",
     "type": "input",
-    "defaultValue": "",
     "templateOptions": {
-      "label": "Certificate",
+      "label": "CertificatePath",
       "placeholder": "C:\\ADP.pfx",
       "description": "The location to the 'private key of the x.509 certificate' on the server where the HelloID agent and provisioning agent are running. Make sure to use the private key for the certificate that's used to generate a ClientID and ClientSecret and for activating the required API's",
       "required": true
     }
   },
   {
-    "key": "ProxyServer",
+    "key": "CertificatePassword",
     "type": "input",
-    "defaultValue": "",
     "templateOptions": {
-      "label": "ProxyServer",
-      "placeholder": "http://localhost:8888",
-      "description": "The URL (or IP Address) to the ProxyServer in the network. Leave empty if no ProxyServer is being used",
+      "label": "CertificatePassword",
+      "type": "password",
+      "description": "The password for the *.pfx certificate",
       "required": true
     }
   },
   {
-    "key": "ApiScope",
+    "key": "ProxyServer",
     "type": "input",
-    "defaultValue": "",
     "templateOptions": {
-      "label": "ApiScope",
-      "placeholder": "api",
-      "description": "The name of the API you need access to. For instance, 'worker-demographics'. You can specficy more API's by separating them with a comma. To get access to all available API's, set the scope to: 'api'",
-      "required": true
+      "label": "ProxyServer",
+      "placeholder": "http://localhost:8888",
+      "description": "The URL (or IP Address) to the ProxyServer in the network. Leave empty if no ProxyServer is being used",
+      "required": false
     }
   },
   {
@@ -77,13 +70,22 @@
     }
   },
   {
-    "key": "JsonFile",
+    "key": "WorkerJson",
     "type": "input",
-    "defaultValue": "",
     "templateOptions": {
-      "label": "JsonFIle (For testing purposes only)",
+      "label": "JsonFile containing the workers. (For testing purposes only)",
       "placeholder": "C:\\worker-demographics.json",
       "description": "The location to the 'JSON file containing the workers' on the server where the HelloID agent and provisioning agent are running.",
+      "required": false
+    }
+  },
+  {
+    "key": "DepartmentJson",
+    "type": "input",
+    "templateOptions": {
+      "label": "JsonFile containing the departments. (For testing purposes only)",
+      "placeholder": "C:\\departments.json",
+      "description": "The location to the 'JSON file containing the departments' on the server where the HelloID agent and provisioning agent are running.",
       "required": false
     }
   }
