@@ -14,15 +14,6 @@ Get-ADPWorkers [[-BaseUrl] <String>] [[-ClientID] <String>] [[-ClientSecret] <St
 ## DESCRIPTION
 Retrieves the Workers and WorkerAssignments from ADP Workforce
 
-## EXAMPLES
-
-### Example 1
-```powershell
-PS C:\> {{ Add example code here }}
-```
-
-{{ Add example description here }}
-
 ## PARAMETERS
 
 ### -BaseUrl
