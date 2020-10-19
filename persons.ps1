@@ -112,7 +112,7 @@ function Get-ADPAccessToken {
     The ADP Workforce API's uses OAuth for authentication\authorization.
     Before data can be retrieved from the API's, an AccessToken has to obtained. The AccessToken is used for all consecutive calls to the ADP Workforce API's. Tokens only have access to a certain API scope. Default the scope is set to: 'worker-demographics organization-departments'. Data outside this scope from other API's cannot be retrieved
 
-    .PARAMETER CientID
+    .PARAMETER ClientID
     The ClientID for the ADP Workforce environment. This will be provided by ADP
 
     .PARAMETER ClientSecret
@@ -134,7 +134,7 @@ function Get-ADPAccessToken {
     param (
         [Parameter(Mandatory)]
         [String]
-        $CientID,
+        $ClientID,
 
         [Parameter(Mandatory)]
         [String]
