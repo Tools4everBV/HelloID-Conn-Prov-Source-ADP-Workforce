@@ -2,9 +2,9 @@
 
 ## This is a work in progress
 
-The 'HelloID-Conn-Prov-Source-ADP-Workforce' connector needs to be executed 'on-premises'. Make sure you have at least 'Windows PowerShell 5.1' installed on the server where the 'HelloID agent and provisioing agent' are running, and that the 'Execute on-premises' switch is toggled.
+The _'HelloID-Conn-Prov-Source-ADP-Workforce'_ connector needs to be executed 'on-premises'. Make sure you have 'Windows PowerShell 5.1' installed on the server where the 'HelloID agent and provisioning agent' are running, and that the 'Execute on-premises' switch is toggled.
 
-Note that the 'HelloID-Conn-Prov-Source-ADP-Workforce' only supports an ADP Workforce enviroment implemented according to standards as specified for the European market. <https://github.com/marketplace-esi/postman-samples>
+Note that the _'HelloID-Conn-Prov-Source-ADP-Workforce'_ implementation is based on ADP Workforce environments for the Dutch market. If you want to implement the connector for the US market, changes will have to be made within the source code.
 
 ### Todo
 
@@ -17,18 +17,17 @@ Note that the 'HelloID-Conn-Prov-Source-ADP-Workforce' only supports an ADP Work
  - Introduction
  - Prerequisites
  - Getting started
+    - Supported PowerShell versions
     - Certificate
-    - API scoping
-    - API discovery
     - Paging
+    - Custom Fields
+    - Caveats
 - PowerShell functions
 - Setup the PowerShell connector
 
 ## Introduction
 
 ADP Workforce is a cloud based HR management platform and provides a set of REST API's that allow you to programmatically interact with it's data. The HelloID source connector uses the API's in the table below.
-
-___The ADP Workforce source connector can only be used in conjunction with the HelloID on premises agent___
 
 ---
 
@@ -43,15 +42,23 @@ ___The ADP Workforce source connector can only be used in conjunction with the H
 
 ## Prerequisites
 
-- Windows PowerShell 5.1 installed on the server where the 'HelloID agent and provisioing agent' are running.
+- Windows PowerShell 5.1 installed on the server where the 'HelloID agent and provisioning agent' are running.
 
 - The public key *.pfx certificate belonging to the X.509 certificate that's used to activate the required API's.
+
+- The password for the public key *.pfx certificate.
 
 - The 'Execute on-premises' switch on the 'System' tab is toggled.
 
 ![image](./assets/hid.png)
 
 ## Getting started
+
+### Supported PowerShell versions
+
+The recommended PowerShell version for the  _'HelloID-Conn-Prov-Source-ADP-Workforce'_ is _Windows PowerShell 5.1_. The connector is not tested on older versions of Windows PowerShell.
+
+_PowerShell 7.0.3 Core_ is not yet supported.
 
 ### X.509 certificate / public key
 
@@ -61,80 +68,92 @@ The public key belonging to the certificate, must be send ADP. ADP will then gen
 
 There are a few options for creating certificates. One of them being the 'OpenSSL' utility. Available on Linux/Windows. https://www.openssl.org/
 
+APD will register an application that's allowed to access the specified API's. _worker-demographics_ and _organizational_departments_. Other API's within the ADP Workforce environment cannot be accessed.
+
 ### X.509 certificate / Private key
 
 The private key (*.pfx) belonging to the X.590 certificate must be used in order obtain an accesstoken.
 
 ### AccessToken
 
-In order to retrieve data from the ADP Workforce API's, an AccessToken has to be obtained. The AccessToken is used for all consecutive calls to ADP Workforce. To obtain an AccessToken, we will need the ___ClientID___, ___ClientSecret___ and the private key (*.pfx) certificate.
+In order to retrieve data from the ADP Workforce API's, an AccessToken has to be obtained. The AccessToken is used for all consecutive calls to ADP Workforce. To obtain an AccessToken, we will need the ___ClientID___, ___ClientSecret___, ___The path to your pfx certificate___ and the ___password for the pfx certificate___.
 
-### API Scope
-
-To obtain the AccessToken you will need to provide an 'API Scope' within the HTTP headers. The scope typically is the API you need access to. For instance, _worker-demographics_. Based on the provided scope, an AccessToken will be generated that will allow access to the specified scope only. In order to obtain an AccessToken for all API's, the scope must be set to: '_api'_.
-
-
-```powershell
-$ClientID = '__YourClientID__'
-$ClientSecret = '__YourClientSecret__'
-$Certificate = '__YourPfxCertificate__'
-
-$authorization = "$($ClientID):$($ClientSecret)"
-$base64String = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($authorization))
-
-$headers = @{
-    "Cache-Control" = "no-cache"
-    "Authorization" = "Basic $base64String"
-    "Content-Type" = "application/json"
-    "grant_type" = "client_credentials&scope=api"
-}
-Invoke-RestMethod @splatRestMethodParameters -UserAgent Uri 'https://accounts.dex.adp.com/auth/oauth/v2/token' -Method Post -Headers $headers -Certificate $Certificate
-
-```
-
-The response is a json containing the AccessToken.
-
-```json
-{
-    "access_token": "",
-    "token_type": "Bearer",
-    "expires_in": "3600"
-}
-```
-
-To obtain a token through Postman:
-
-1. Add the *.pfx certificate to ___Settings -> Certificates___.
-2. Create a new POST request.
-3. Click the __Authorization__ tab and add __Basic Authentication__.
-4. The UserName and Password need to be filled in with the ___ClientID___ and ___ClientSecret___.
-5. Click the ___Headers___ tab and add a new key/value pair with the key set to: ___grant_type___ and the value to: ___client_credentials&scope=api___
-
-### API Discovery
-
-ADP Workforce provides an enpoint that will obtain information about which API's are current activated for your environment.To see which API's are currently activated, execute the PowerShell code pasted below:
-
-```powershell
-$AccessToken = '__YourAccessToken__'
-
-$headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
-$headers.Add("Authorization", "$AccessToken")
-Invoke-RestMethod 'https://api.dex.adp.com/help/v1/apis' -Method 'GET' -Headers $headers
-```
+Tokens only have access to a certain API scope. Default the scope is set to: 'worker-demographics organization-departments'. Data outside this scope from other API's cannot be retrieved
 
 ### Paging
 
-Paging is only supported by ADP on the 'worker-demograpics' endpoint. Paging is not yet implemented in the connector.
+Paging is only supported by ADP for the 'worker-demograpics' endpoint. Paging is not yet implemented in the connector.
+
+### Assignments
+
+If a worker has multiple assignments, each assigment will imported in HelloID.
+
+### Custom Fields
+
+Both the worker and assigment(s) may contain _custom fields_. Custom fields will be automatically imported in HelloID.
+
+Custom fields can be selected in both the _person_ and _contract_ mapping.
+
+For instance, the customfield for the _FamilyNamePartner_:
+![image](./assets/customFieldFamilyNamePartner.png)
+
+Or the customField for the _ContractHours_:
+![image](./assets/customFieldContractHours.png)
+
+### Caveats
+
+__[worker.businessCommunication]__
+
+The _[worker.businessCommunication]_ array contains information about the:
+
+- Fixed Phone Number
+- Mobile Phone Number
+- Email Address
+
+All three are array's. Implying that they may contain multiple items.
+
+Since the demo data doesn't have array's with multiple items and since there's no way to determine which item is 'primary'. At this point it's hardcoded to always pick the first __[0]__ based item in the array.
+
+```powershell
+if ($null -ne $worker.businessCommunication.landLines){
+    $PhoneNumberFixed = $worker.businessCommunication.landLines[0].formattedNumber
+}
+```
+
+__[worker.assignment.reportsTo]__
+
+The _[worker.assignment.reportsTo]_ array for an assignment contains the information about the manager(s) a worker reports to.
+
+The array may contain multiple items (managers) for an assignment. There's no way to determine which manager is the 'primary' manager for a particular contract/assignment. At this point it's hardcoded to always pick the first __[0]__ based item in the array.
+
+```powershell
+if ($null -ne $assignment.reportsTo){
+    for ($i = 0; $i -lt $assignment.reportsTo.Length; $i++) {
+        $manager = @{
+            FormattedName = $assignment.reportsTo[0].reportsToWorkerName.formattedName
+            WorkerID = $assignment.reportsTo[0].workerID.idValue
+            AssociateOID = $assignment.reportsTo[0].associateOID
+            RelationShipCode = $assignment.reportsTo[0].reportsToRelationshipCode.longName
+        }
+    }
+}
+```
 
 ## PowerShell functions
 
-All PowerShell functions have commentBased help. Both in the sourcecode and within the Github repository. <https://github.com/Tools4everBV/HelloID-Conn-Prov-Source-ADP-Workforce/tree/main/docs/en-US>
+All PowerShell functions have comment based help. Both in the sourcecode and within the Github repository. <https://github.com/Tools4everBV/HelloID-Conn-Prov-Source-ADP-Workforce/tree/main/docs/en-US>
 
 ### Sample data
 
-If you want to customize the connector according to your own needs, you can use the demo data from ADP. <https://github.com/marketplace-esi/postman-samples/blob/master/workforce/hr/workers-v2-demographics/success/workers-v2-demographics-al-workers-http-200-response.json>
+If you want to customize the connector according to your own needs, you can use the demo data from ADP.
 
-The connector configuration supports a person import from a JSON file.
+Workers: <https://github.com/marketplace-esi/postman-samples/blob/master/workforce/hr/workers-v2-demographics/success/workers-v2-demographics-al-workers-http-200-response.json>
+
+Department: <https://github.com/marketplace-esi/postman-samples/blob/master/workforce/core/success/core-organization-departments-http-200-response.json>
+
+The connector configuration supports an import from a JSON file for both persons and departments.
+
+![image](./assets/fileImport.png)
 
 ### Usage in VSCode
 
@@ -142,12 +161,7 @@ If you need to test your code in VSCode, make sure to create a _'$connectionSett
 
 ```powershell
 $connectionSettings = @{
-    BaseUrl = ''
-    ClientID = ''
-    ClientSecret = ''
-    Certificate = ''
-    ProxyServer = ''
-    JsonFile = ''
+    WorkerJson = '.\test\workers.json'
     ImportFile = $true
 }
 ```
@@ -160,8 +174,43 @@ Get-ADPWorkers -Configuration $connectionSettings
 
 ## Setup the PowerShell connector
 
-1. Add a new 'Source System' to HelloID and make sure to import all the neccasary files.
+1. Make sure you can access the ADP Workforce API's.
 
-2. Fill in the required fields on the 'Configuration' tab.
+Obtain the accesstoken:
+
+```powershell
+$authorization = "$($CientID):$($clientSecretString)"
+$base64String = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($authorization))
+
+$headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+$headers.Add("grant_type", "client_credentials&scope=worker-demographics organization-departments")
+$headers.Add("Authorization", "Basic $base64String)
+
+$response = Invoke-RestMethod 'https://accounts.dex.adp.com/auth/oauth/v2/token' -Method 'POST' -Headers $headers
+$response | ConvertTo-Json
+$response.access_token
+```
+
+Test access to the ADP Workforce API's, replace the value from _$headers.Add("Authorization", "Bearer _your_access_token_")_ with the value from _$response.access_token_.
+
+```powershell
+$headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+$headers.Add("Authorization", "Bearer _your_access_token_")
+
+$response = Invoke-RestMethod 'https://api.dex.adp.com/test ' -Method 'GET' -Headers $headers
+$response | ConvertTo-Json
+```
+
+2. Add a new 'Source System' to HelloID and make sure to import all the necessary files.
+
+    - [ ] configuration.json
+    - [ ] personMapping.json
+    - [ ] contractMapping.json
+    - [ ] persons.ps1
+    - [ ] departments.ps1
+
+3. Fill in the required fields on the 'Configuration' tab.
+
+![image](./assets/config.png)
 
 ---
