@@ -1,7 +1,7 @@
 # ConvertTo-RawDataPersonObject
 
 ## SYNOPSIS
-Converts the worker object to a raw data person object
+Converts the ADP Worker object to a raw data object
 
 ## SYNTAX
 
@@ -10,8 +10,7 @@ ConvertTo-RawDataPersonObject [-Workers] <PSObject> [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Converts the worker object to a raw data person object that can be imported into HelloID.
-Change this according to your ADP Workforce environment
+Converts the ADP Worker object to a \[RawDataPersonObject\] that can be imported into HelloID
 
 ## EXAMPLES
 
@@ -42,10 +41,6 @@ Accept wildcard characters: False
 ### CommonParameters
 This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
-## INPUTS
-
 ## OUTPUTS
 
-## NOTES
-
-## RELATED LINKS
+### System.Object[]
