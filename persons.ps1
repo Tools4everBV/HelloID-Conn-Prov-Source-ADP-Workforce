@@ -54,9 +54,7 @@ function Get-ADPWorkers {
 
         [String]
         $CertificatePassword,
-
-        [AllowNull()]
-        [AllowEmptyString()]
+        
         [String]
         $ProxyServer,
 
