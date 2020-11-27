@@ -1,7 +1,7 @@
 #####################################################
 # HelloID-Conn-Prov-SOURCE-ADP-Workforce-Persons
 #
-# Version: 1.0.4
+# Version: 1.0.5.3
 #####################################################
 
 #Region External functions
@@ -14,7 +14,7 @@ function Get-ADPWorkers {
     Retrieves the Workers and WorkerAssignments from ADP Workforce
 
     .PARAMETER BaseUrl
-    The BaseUrl to the ADP Workforce environment. For example: https://test-api.adp.com
+    The BaseUrl to the ADP Workforce environment. For example: https://api.eu.adp.com
 
     .PARAMETER ClientID
     The ClientID for the ADP Workforce environment. This will be provided by ADP
@@ -31,44 +31,36 @@ function Get-ADPWorkers {
 
     .PARAMETER ProxyServer
     The URL (or IP Address) to the ProxyServer in the network. Leave empty if no ProxyServer is being used
-
-    .PARAMETER ImportFile
-    Use this in combination with the JSON file to test the import of the workers without making API calls to ADP Workforce
-
-    .PARAMETER WorkerJson
-    The location to the 'JSON file containing the workers' on the server where the HelloID agent and provisioning agent are running.
     #>
     [CmdletBinding()]
     param (
+        [Parameter(Mandatory)]
         [String]
         $BaseUrl,
 
+        [Parameter(Mandatory)]
         [String]
         $ClientID,
 
+        [Parameter(Mandatory)]
         [String]
         $ClientSecret,
 
+        [Parameter(Mandatory)]
         [String]
         $CertificatePath,
 
+        [Parameter(Mandatory)]
         [String]
         $CertificatePassword,
         
         [String]
-        $ProxyServer,
-
-        [Bool]
-        $ImportFile,
-
-        [String]
-        $WorkerJson
+        $ProxyServer
     )
 
     try {
-        if(!$ImportFile){
-            $accessToken = Get-ADPAccessToken -CientID $ClientID -ClientSecret $ClientSecret -CertifcatePath $CertificatePath -CertificatePassword $CertificatePassword
-        }
+        $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($CertificatePath, $CertificatePassword)
+        $accessToken = Get-ADPAccessToken -ClientID $ClientID -ClientSecret $ClientSecret -Certificate $certificate
     } catch [System.Net.WebException] {
         $webEx = $PSItem
         $errorObj = ($($webEx.ErrorDetails.Message) | ConvertFrom-Json).response
@@ -79,18 +71,21 @@ function Get-ADPWorkers {
     }
 
     try {
-        if ($ImportFile){
-            Get-Content $WorkerJson | ConvertFrom-Json | ConvertTo-RawDataPersonObject | ConvertTo-Json -Depth 100
-        } else {
-            $splatADPRestMethodParams = @{
-                Uri = "$BaseUrl/hr/v2/worker-demographics"
-                Method = 'GET'
-                AccessToken = $accessToken
-                ProxyServer = $ProxyServer
-                SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
-            }
-            Invoke-ADPRestMethod @splatADPRestMethodParams | ConvertTo-RawDataPersonObject | ConvertTo-Json -Depth 100
+        $splatADPRestMethodParams = @{
+            Url = "$BaseUrl/hr/v2/worker-demographics"
+            Method = 'GET'
+            AccessToken = $accessToken.access_token
+            ProxyServer = $ProxyServer
+            Certificate = $certificate
         }
+        
+        #Invoke-ADPRestMethod @splatADPRestMethodParams | ConvertTo-RawDataPersonObject | ConvertTo-Json -Depth 100
+
+        $jsonCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(28591).GetBytes((Invoke-ADPRestMethod @splatADPRestMethodParams).Content)
+        )
+
+        ($jsonCorrected | ConvertFrom-Json) | ConvertTo-RawDataPersonObject | ConvertTo-Json -Depth 100
+
     } catch [System.Net.WebException] {
         $webEx = $PSItem
         $errorObj = ($($webEx.ErrorDetails.Message) | ConvertFrom-Json).response
@@ -120,17 +115,13 @@ function Get-ADPAccessToken {
     .PARAMETER ClientSecret
     The ClientSecret for the ADP Workforce environment. This will be provided by ADP
 
-    .PARAMETER CertificatePath
-    The location to the the private key of the x.509 certificate on the server where the HelloID agent and provisioning agent are running
-    Make sure to use the private key for the certificate that's used to generate a ClientID and ClientSecret and for activating the required API's
-
-    .PARAMETER CertificatePassword
-    The password for the *.pfx certificate
+    .PARAMETER Certificate
+    The [X509Certificate] object containing the *.pfx
 
     .EXAMPLE
-    Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_Secret' -Certifcate 'Customer_ADP_Dev.pfx'
+    $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new("the path to the *.pfx file", "Password for the *.pfx certificate")
 
-    Retrieves an accesstoken that is authenticated for the 'worker-demographics' and 'organizational-departments' API's
+    Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_Secret' -Certifcate $certificate
     #>
     [CmdletBinding()]
     param (
@@ -142,32 +133,26 @@ function Get-ADPAccessToken {
         [String]
         $ClientSecret,
 
-        [Parameter(Mandatory)]
-        [String]
-        $CertificatePath,
-
-        [Parameter(Mandatory)]
-        [String]
-        $CertificatePassword
+        [X509Certificate]
+        $Certificate
     )
 
-    $authorization = "$($CientID):$($clientSecretString)"
-    $base64String = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($authorization))
-
-    $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($CertificatePath, $CertificatePassword)
-
     $headers = @{
-        "Cache-Control" = "no-cache"
-        "Authorization" = "Basic $base64String"
-        "Content-Type" = "application/json"
-        "grant_type" = "client_credentials&scope=worker-demographics organizational-departments"
+        "content-type" = "application/x-www-form-urlencoded"
+    }
+
+    $body = @{
+        client_id = $ClientID
+        client_secret = $ClientSecret
+        grant_type = "client_credentials"
     }
 
     try {
         $splatRestMethodParameters = @{
-            Uri = 'https://accounts.dex.adp.com/auth/oauth/v2/token'
+            Uri = 'https://accounts.eu.adp.com/auth/oauth/v2/token'
             Method = 'POST'
             Headers = $headers
+            Body = $body
             Certificate = $certificate
         }
         Invoke-RestMethod @splatRestMethodParameters
@@ -184,8 +169,8 @@ function Invoke-ADPRestMethod {
     .DESCRIPTION
     Retrieves data from the ADP API's using the standard <Invoke-RestMethod> cmdlet
 
-    .PARAMETER Uri
-    The BaseUri to the ADP Workforce environment. For example: https://test-api.adp.com
+    .PARAMETER Url
+    The BaseUrl to the ADP Workforce environment. For example: https://test-api.adp.com
 
     .PARAMETER Method
     The CRUD operation for the request. Valid HttpMethods inlcude: GET and POST. Note that the ADP API's needed for the connector will only support 'GET'
@@ -196,8 +181,13 @@ function Invoke-ADPRestMethod {
     .PARAMETER ProxyServer
     The URL (or IP Address) to the ProxyServer in the network. Leave empty if no ProxyServer is being used
 
+    .PARAMETER Certificate
+    The [X509Certificate] object containing the *.pfx
+
     .EXAMPLE
-    Invoke-ADPRestMethod -Uri 'https://test-api.adp.com/hr/v2/worker-demographics' -Method 'GET' -AccessToken '0000-0000-0000-0000'
+    $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new("the path to the *.pfx file", "Password for the *.pfx certificate")
+
+    Invoke-ADPRestMethod -Uri 'https://test-api.adp.com/hr/v2/worker-demographics' -Method 'GET' -AccessToken '0000-0000-0000-0000' -Certifcate $certificate
 
     Returns the raw JSON data containing all workers from ADP Workforce
     #>
@@ -205,28 +195,28 @@ function Invoke-ADPRestMethod {
     param(
         [Parameter(Mandatory)]
         [String]
-        $Uri,
+        $Url,
 
         [Parameter(Mandatory)]
         [String]
         $Method,
 
         [Parameter(Mandatory)]
-        [AllowNull]
-        [AllowEmptyString]
         [String]
         $AccessToken,
 
         [AllowNull()]
         [AllowEmptyString()]
         [String]
-        $ProxyServer
+        $ProxyServer,
+
+        [Parameter(Mandatory)]
+        [X509Certificate]
+        $Certificate
     )
 
     $headers = @{
-        "grant_type" = "client_credentials&scope=api"
-        "Content-Type" = "application/json"
-        "Authorization" = "Bearer $AccessToken"
+        "Authorization" = "Bearer $AccessToken"        
     }
 
     if ([string]::IsNullOrEmpty($ProxyServer)){
@@ -239,13 +229,16 @@ function Invoke-ADPRestMethod {
         [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 
         $splatRestMethodParameters = @{
-            Uri = $Uri
+            Uri = $Url
             Method = $Method
             Headers = $headers
             Proxy = $proxy
             UseBasicParsing = $true
+            Certificate = $Certificate
         }
-        Invoke-RestMethod @splatRestMethodParameters
+        #Invoke-RestMethod @splatRestMethodParameters
+        Invoke-WebRequest @splatRestMethodParameters -ContentType "application/json;charset=utf-8"
+
     } catch {
         $PSCmdlet.ThrowTerminatingError($PSItem)
     }
@@ -278,123 +271,154 @@ function ConvertTo-RawDataPersonObject {
     )
     process {
         [System.Collections.Generic.List[object]]$listWorkers = @()
+        
 
         foreach ($worker in $workers.workers) {
 
-            if ($null -ne $worker.customFieldGroup.stringFields){
-                $customFieldsWorkerProperties = Select-CustomFields -CustomFields $worker.customFieldGroup
+
+			#only filled associateOID's
+			
+            if([string]::IsNullOrWhiteSpace($worker.associateOID))
+            {
+                continue
             }
+            else
+            {
 
-            if ($null -ne $worker.businessCommunication){
-
-                # The emails array (if not empty) always contains 1 item
-                if ($null -ne $worker.businessCommunication.emails){
-                    $EmailAddress = $worker.businessCommunication.emails[0].emailUri
-                }
-
-                # The landlines array (if not empty) always contains 1 item
-                if ($null -ne $worker.businessCommunication.landLines){
-                    $PhoneNumberFixed = $worker.businessCommunication.landLines[0].formattedNumber
-                }
-
-                # The mobiles array (if not empty) always contains 1 item
-                if ($null -ne $worker.businessCommunication.mobiles){
-                    $PhoneNumberMobile = $worker.businessCommunication.mobiles[0].formattedNumber
-                }
-            }
-
-            $workerObj = [PSCustomObject]@{
-                ExternalId = $worker.workerID.idValue
-                DisplayName = $worker.person.legalName.formattedName
-                AssocciateOID = $worker.associateOID
-                WorkerID = $worker.workerID.idValue
-                Status = $worker.workerStatus.statusCode
-                Personal = @{
-                    BirthDate = $worker.person.birthDate
-                    BirthPlace = $worker.person.birthPlace.cityName
-                    Name = @{
-                        legalName = @{
-                            FamilyName = $worker.person.legalName.familyName1
-                            FamilyNamePrefix = $worker.person.legalName.familyName1Prefix
-                            FormattedName = $worker.person.legalName.formattedName
-                            GivenName = $worker.person.legalName.givenName
-                            Initials = $worker.person.legalName.initials
-                            NickName = $worker.person.legalName.nickName
-                        }
-                        PreferredSalutation = @{
-                            Salutation = $worker.person.legalName.preferredSalutation
-                        }
-                    }
-                }
-                BusinessCommunication = @{
-                    EmailAddress = $EmailAddress
-                    LandLine = $PhoneNumberFixed
-                    Mobile = $PhoneNumberMobile
-                }
-                Gender = $worker.person.genderCode.codeValue
-                OriginalHireDate = $worker.WorkerDates.originalHireDate
-                TerminationDate = $worker.WorkerDates.terminationDate
-                RetirementDate = $worker.WorkerDates.retirementDate
-                CustomFields = $customFieldsWorkerProperties
-                Contracts = $contracts
-            }
-
-            if ($null -ne $worker.workAssignments){
                 [System.Collections.Generic.List[object]]$contracts = @()
-
-                foreach ($assignment in $worker.workAssignments){
-
-                    # Assignments may contain multiple managers (per assignment). There's no way to specify which manager is primary
-                    # We always select the first one in the array
-                    if ($null -ne $assignment.reportsTo){
-                        for ($i = 0; $i -lt $assignment.reportsTo.Length; $i++) {
-                            $manager = @{
-                                FormattedName = $assignment.reportsTo[0].reportsToWorkerName.formattedName
-                                WorkerID = $assignment.reportsTo[0].workerID.idValue
-                                AssociateOID = $assignment.reportsTo[0].associateOID
-                                RelationShipCode = $assignment.reportsTo[0].reportsToRelationshipCode.longName
-                            }
-                        }
-                    }
-
-                    if ($null -ne $assignment.customFieldGroup){
-                        $customFieldsAssignmentProperties = Select-CustomFields -CustomFields $assignment.customFieldGroup
-                    }
-
-                    if ($null -ne $assignment.homeOrganizationalUnits){
-                        for ($i = 0; $i -lt $assignment.homeOrganizationalUnits.Length; $i++) {
-                            $homeOrganizationalUnit = @{
-                                Name = $assignment.homeOrganizationalUnits[$i].nameCode.longName
-                                Code = $assignment.homeOrganizationalUnits[$i].nameCode.codeValue
-                            }
-                        }
-                    }
-
-                    $assignmentObj = [PSCustomObject]@{
-                        PrimaryIndicator = $assignment.primaryIndicator
-                        ActualStartDate = $assignment.actualStartDate
-                        TerminationDate = $assignment.terminationDate
-                        ExpectedTerminationDate = $assignment.expectedTerminationDate
-                        WorkerTypeCode = $assignment.workerTypeCode
-                        ManagementPosition = $assignment.managementPositionIndicator
-                        PositionId = $assignment.positionID
-                        PositionTitle = $assignment.PositionTitle
-                        HomeOrganizationalUnit = $homeOrganizationalUnit
-                        #HomeWorkLocation = $assignment.homeWorkLocation.nameCode #Object Empty
-                        #AssignedWorkLocation = $assignment.assignedWorkLocations #Object Empty
-                        ItemId = $assignment.itemID
-                        PayrollGroupCode = $assignment.payrollGroupCode
-                        PayrollFileNumber = $assignment.payrollFileNumber
-                        JobCode = $assignment.jobCode.longName
-                        StandardHours = $assignment.standardHours.hoursQuantity
-                        StandardHoursQuantity = $assignment.standardHours.unitCode.longName
-                        #AssignmentCostCenters = $assignment.assignmentCostCenters #Object Empty
-                        ReportsTo = $manager
-                        CustomFields = $customFieldsAssignmentProperties
-                    }
-                    $contracts.Add($assignmentObj)
+            
+                if ($null -ne $worker.customFieldGroup.stringFields){
+                    $customFieldsWorkerProperties = Select-CustomFields -CustomFields $worker.customFieldGroup
                 }
-                $listWorkers.Add($workerObj)
+
+                if ($null -ne $worker.businessCommunication){
+
+                    # The emails array (if not empty) always contains 1 item
+                    if ($null -ne $worker.businessCommunication.emails){
+                        $EmailAddress = $worker.businessCommunication.emails[0].emailUri
+                    }
+
+                    # The landlines array (if not empty) always contains 1 item
+                    if ($null -ne $worker.businessCommunication.landLines){
+                        $PhoneNumberFixed = $worker.businessCommunication.landLines[0].formattedNumber
+                    }
+
+                    # The mobiles array (if not empty) always contains 1 item
+                    if ($null -ne $worker.businessCommunication.mobiles){
+                        $PhoneNumberMobile = $worker.businessCommunication.mobiles[0].formattedNumber
+                    }
+                }
+
+                $workerObj = [PSCustomObject]@{
+                    ExternalId = $worker.workerID.idValue
+                    DisplayName = $worker.person.legalName.formattedName
+                    AssocciateOID = $worker.associateOID
+                    WorkerID = $worker.workerID.idValue
+                    Status = $worker.workerStatus.statusCode
+                    Personal = @{
+                        BirthDate = $worker.person.birthDate
+                        BirthPlace = $worker.person.birthPlace.cityName
+                        Name = @{
+                            legalName = @{
+                                FamilyName = $worker.person.legalName.familyName1
+                                FamilyNamePrefix = $worker.person.legalName.familyName1Prefix
+                                FormattedName = $worker.person.legalName.formattedName
+                                GivenName = $worker.person.legalName.givenName
+                                Initials = $worker.person.legalName.initials
+                                NickName = $worker.person.legalName.nickName
+                            }
+                            PreferredSalutation = @{
+                                Salutation = $worker.person.legalName.preferredSalutation
+                            }
+                        }
+                    }
+                    BusinessCommunication = @{
+                        EmailAddress = $EmailAddress
+                        LandLine = $PhoneNumberFixed
+                        Mobile = $PhoneNumberMobile
+                    }
+                    Gender = $worker.person.genderCode.codeValue
+                    OriginalHireDate = $worker.WorkerDates.originalHireDate
+                    TerminationDate = $worker.WorkerDates.terminationDate
+                    RetirementDate = $worker.WorkerDates.retirementDate
+                    CustomFields = $customFieldsWorkerProperties
+                    Contracts = $contracts
+                }
+
+                if ($null -ne $worker.workAssignments){
+
+                    foreach ($assignment in $worker.workAssignments){
+
+                        # Assignments may contain multiple managers (per assignment). There's no way to specify which manager is primary
+                        # We always select the first one in the array
+                        if ($null -ne $assignment.reportsTo){
+                            for ($i = 0; $i -lt $assignment.reportsTo.Length; $i++) {
+                                $manager = @{
+                                    FormattedName = $assignment.reportsTo[2].reportsToWorkerName.formattedName
+                                    WorkerID = $assignment.reportsTo[1].workerID.idValue
+                                    AssociateOID = $assignment.reportsTo[3].associateOID
+                                    RelationShipCode = $assignment.reportsTo[0].reportsToRelationshipCode.longName
+                                }
+                            }
+                        }
+
+                        if ($null -ne $assignment.customFieldGroup){
+                            $customFieldsAssignmentProperties = Select-CustomFields -CustomFields $assignment.customFieldGroup
+                        }
+
+                        if ($null -ne $assignment.homeOrganizationalUnits){
+                            for ($i = 0; $i -lt $assignment.homeOrganizationalUnits.Length; $i++) {
+                                $homeOrganizationalUnit = @{
+                                    Name = $assignment.homeOrganizationalUnits[$i].nameCode.longName
+                                    Code = $assignment.homeOrganizationalUnits[$i].nameCode.codeValue
+                                }
+                            }
+                        }
+
+                        if ($null -ne $assignment.AssignmentCostCenters){
+                            for ($i = 0; $i -lt $assignment.AssignmentCostCenters.Length; $i++) {
+                                $assignmentCostCenter = @{
+                                    costCenterPercentage = $assignment.AssignmentCostCenters[$i].costCenterPercentage
+                                    costCenterID = $assignment.AssignmentCostCenters[$i].costCenterID
+                                }
+                            }
+                        }
+
+                        if ($null -ne $assignment.fullTimeEquivalenceRatio){
+                            
+                                $assignmentWorkPercentage = $assignment.fullTimeEquivalenceRatio                                    
+                            
+                            
+                        }
+
+                        $assignmentObj = [PSCustomObject]@{
+                            PrimaryIndicator = $assignment.primaryIndicator
+                            ActualStartDate = $assignment.actualStartDate
+                            TerminationDate = $assignment.terminationDate
+                            ExpectedTerminationDate = $assignment.expectedTerminationDate
+                            WorkerTypeCode = $assignment.workerTypeCode
+                            ManagementPosition = $assignment.managementPositionIndicator
+                            PositionId = $assignment.positionID
+                            PositionTitle = $assignment.PositionTitle
+                            HomeOrganizationalUnit = $homeOrganizationalUnit
+                            #HomeWorkLocation = $assignment.homeWorkLocation.nameCode #Object Empty
+                            #AssignedWorkLocation = $assignment.assignedWorkLocations #Object Empty
+                            ItemId = $assignment.itemID
+                            PayrollGroupCode = $assignment.payrollGroupCode
+                            PayrollFileNumber = $assignment.payrollFileNumber
+                            JobCode = $assignment.jobCode.codeValue
+                            JobTitle = $assignment.jobCode.longName
+                            StandardHours = $assignment.standardHours.hoursQuantity
+                            StandardHoursQuantity = $assignment.standardHours.unitCode.longName
+                            AssignmentCostCenters = $assignmentCostCenter
+                            WorkPercentage = $assignmentWorkPercentage
+                            ReportsTo = $manager
+                            CustomFields = $customFieldsAssignmentProperties
+                        }
+                        $contracts.Add($assignmentObj)
+                    }
+                    $listWorkers.Add($workerObj)
+                }
             }
         }
         $listWorkers
@@ -452,13 +476,11 @@ function Select-CustomFields {
 $connectionSettings = ConvertFrom-Json $configuration
 $splatGetADPWorkers = @{
     BaseUrl = $($connectionSettings.BaseUrl)
-    ClientID = $($connectionSettings.CientID)
+    ClientID = $($connectionSettings.ClientID)
     ClientSecret = $($connectionSettings.ClientSecret)
     CertificatePath = $($connectionSettings.CertificatePath)
     CertificatePassword = $($connectionSettings.CertificatePassword)
     ProxyServer = $($connectionSettings.ProxyServer)
-    WorkerJson = $($connectionSettings.WorkerJson)
-    ImportFile = $($connectionSettings.ImportFile)
 }
 Get-ADPWorkers @splatGetADPWorkers
 #EndRegion

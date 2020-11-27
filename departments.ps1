@@ -1,7 +1,7 @@
 #####################################################
 # HelloID-Conn-Prov-SOURCE-ADP-Workforce-Departments
 #
-# Version: 1.0.4
+# Version: 1.0.5.1
 #####################################################
 
 #Region External functions
@@ -14,12 +14,13 @@ function Get-ADPDepartments {
     Retrieves the Departments from ADP Workforce
 
     .PARAMETER BaseUrl
-    The BaseUrl to the ADP Workforce environment. For example: https://test-api.adp.com
+    The BaseUrl to the ADP Workforce environment. For example: https://api.eu.adp.com
 
     .PARAMETER ClientID
     The ClientID for the ADP Workforce environment. This will be provided by ADP
 
     .PARAMETER ClientSecret
+
     The ClientSecret for the ADP Workforce environment. This will be provided by ADP
 
     .PARAMETER CertificatePath
@@ -31,44 +32,36 @@ function Get-ADPDepartments {
 
     .PARAMETER ProxyServer
     The URL (or IP Address) to the ProxyServer in the network. Leave empty if no ProxyServer is being used
-
-    .PARAMETER ImportFile
-    Use this in combination with the JSON file to test the import of the workers without making API calls to ADP Workforce
-
-    .PARAMETER DepartmentJson
-    The location to the 'JSON file containing the departments' on the server where the HelloID agent and provisioning agent are running
     #>
     [CmdletBinding()]
     param (
+        [Parameter(Mandatory)]
         [String]
         $BaseUrl,
 
+        [Parameter(Mandatory)]
         [String]
         $ClientID,
 
+        [Parameter(Mandatory)]
         [String]
         $ClientSecret,
 
+        [Parameter(Mandatory)]
         [String]
         $CertificatePath,
 
+        [Parameter(Mandatory)]
         [String]
         $CertificatePassword,
         
         [String]
-        $ProxyServer,
-
-        [Bool]
-        $ImportFile,
-
-        [String]
-        $WorkerJson
+        $ProxyServer
     )
 
     try {
-        if(!$($ConfigurationSettings.ImportFile)){
-            $accessToken = Get-ADPAccessToken -CientID $($ConfigurationSettings.ClientID) -ClientSecret $($configuration.ClientSecret) -CertifcatePath $($ConfigurationSettings.CertificatePath) -CertificatePassword ($ConfigurationSettings.CertificatePassword)
-        }
+        $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($CertificatePath, $CertificatePassword)
+        $accessToken = Get-ADPAccessToken -ClientID $ClientID -ClientSecret $ClientSecret -Certificate $certificate
     } catch [System.Net.WebException] {
         $webEx = $PSItem
         $errorObj = ($($webEx.ErrorDetails.Message) | ConvertFrom-Json).response
@@ -79,18 +72,14 @@ function Get-ADPDepartments {
     }
 
     try {
-        if ($($ConfigurationSettings.ImportFile)){
-            Get-Content $($ConfigurationSettings.DepartmentJson) | ConvertFrom-Json | ConvertTo-RawDataDepartmentObject | ConvertTo-Json -Depth 100
-        } else {
-            $splatADPRestMethodParams = @{
-                Uri = "$($ConfigurationSettings.BaseUrl)/core/v2/organization-departments"
-                Method = 'GET'
-                AccessToken = $accessToken
-                ProxyServer = $($configurationSettings.ProxyServer)
-                SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
-            }
-            Invoke-ADPRestMethod @splatADPRestMethodParams | ConvertTo-RawDataPersonObject | ConvertTo-Json -Depth 100
+        $splatADPRestMethodParams = @{
+            Url = "$BaseUrl/core/v1/organization-departments"
+            Method = 'GET'
+            AccessToken = $accessToken.access_token
+            ProxyServer = $ProxyServer
+            Certificate = $certificate
         }
+        Invoke-ADPRestMethod @splatADPRestMethodParams | ConvertTo-RawDataDepartmentObject | ConvertTo-Json -Depth 100
     } catch [System.Net.WebException] {
         $webEx = $PSItem
         $errorObj = ($($webEx.ErrorDetails.Message) | ConvertFrom-Json).response
@@ -120,17 +109,13 @@ function Get-ADPAccessToken {
     .PARAMETER ClientSecret
     The ClientSecret for the ADP Workforce environment. This will be provided by ADP
 
-    .PARAMETER CertificatePath
-    The location to the the private key of the x.509 certificate on the server where the HelloID agent and provisioning agent are running
-    Make sure to use the private key for the certificate that's used to generate a ClientID and ClientSecret and for activating the required API's
-
-    .PARAMETER CertificatePassword
-    The password for the *.pfx certificate
+    .PARAMETER Certificate
+    The [X509Certificate] object containing the *.pfx
 
     .EXAMPLE
-    Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_Secret' -Certifcate 'Customer_ADP_Dev.pfx'
+    $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new("the path to the *.pfx file", "Password for the *.pfx certificate")
 
-    Retrieves an accesstoken that is authenticated for the 'worker-demographics' and 'organizational-departments' API's
+    Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_Secret' -Certifcate $certificate
     #>
     [CmdletBinding()]
     param (
@@ -142,32 +127,26 @@ function Get-ADPAccessToken {
         [String]
         $ClientSecret,
 
-        [Parameter(Mandatory)]
-        [String]
-        $CertificatePath,
-
-        [Parameter(Mandatory)]
-        [String]
-        $CertificatePassword
+        [X509Certificate]
+        $Certificate
     )
 
-    $authorization = "$($CientID):$($ClientSecret)"
-    $base64String = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($authorization))
-
-    $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($CertificatePath, $CertificatePassword)
-
     $headers = @{
-        "Cache-Control" = "no-cache"
-        "Authorization" = "Basic $base64String"
-        "Content-Type" = "application/json"
-        "grant_type" = "client_credentials&scope=worker-demographics organizational-departments"
+        "content-type" = "application/x-www-form-urlencoded"
+    }
+
+    $body = @{
+        client_id = $ClientID
+        client_secret = $ClientSecret
+        grant_type = "client_credentials"
     }
 
     try {
         $splatRestMethodParameters = @{
-            Uri = 'https://accounts.dex.adp.com/auth/oauth/v2/token'
+            Uri = 'https://accounts.eu.adp.com/auth/oauth/v2/token'
             Method = 'POST'
             Headers = $headers
+            Body = $body
             Certificate = $certificate
         }
         Invoke-RestMethod @splatRestMethodParameters
@@ -184,8 +163,8 @@ function Invoke-ADPRestMethod {
     .DESCRIPTION
     Retrieves data from the ADP API's using the standard <Invoke-RestMethod> cmdlet
 
-    .PARAMETER Uri
-    The BaseUri to the ADP Workforce environment. For example: https://test-api.adp.com
+    .PARAMETER Url
+    The BaseUrl to the ADP Workforce environment. For example: https://test-api.adp.com
 
     .PARAMETER Method
     The CRUD operation for the request. Valid HttpMethods inlcude: GET and POST. Note that the ADP API's needed for the connector will only support 'GET'
@@ -196,8 +175,13 @@ function Invoke-ADPRestMethod {
     .PARAMETER ProxyServer
     The URL (or IP Address) to the ProxyServer in the network. Leave empty if no ProxyServer is being used
 
+    .PARAMETER Certificate
+    The [X509Certificate] object containing the *.pfx
+
     .EXAMPLE
-    Invoke-ADPRestMethod -Uri 'https://test-api.adp.com/hr/v2/worker-demographics' -Method 'GET' -AccessToken '0000-0000-0000-0000'
+    $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new("the path to the *.pfx file", "Password for the *.pfx certificate")
+
+    Invoke-ADPRestMethod -Uri 'https://test-api.adp.com/hr/v2/worker-demographics' -Method 'GET' -AccessToken '0000-0000-0000-0000' -Certifcate $certificate
 
     Returns the raw JSON data containing all workers from ADP Workforce
     #>
@@ -205,27 +189,27 @@ function Invoke-ADPRestMethod {
     param(
         [Parameter(Mandatory)]
         [String]
-        $Uri,
+        $Url,
 
         [Parameter(Mandatory)]
         [String]
         $Method,
 
         [Parameter(Mandatory)]
-        [AllowNull]
-        [AllowEmptyString]
         [String]
         $AccessToken,
 
         [AllowNull()]
         [AllowEmptyString()]
         [String]
-        $ProxyServer
+        $ProxyServer,
+
+        [Parameter(Mandatory)]
+        [X509Certificate]
+        $Certificate
     )
 
     $headers = @{
-        "grant_type" = "client_credentials&scope=api"
-        "Content-Type" = "application/json"
         "Authorization" = "Bearer $AccessToken"
     }
 
@@ -239,11 +223,12 @@ function Invoke-ADPRestMethod {
         [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 
         $splatRestMethodParameters = @{
-            Uri = $Uri
+            Uri = $Url
             Method = $Method
             Headers = $headers
             Proxy = $proxy
             UseBasicParsing = $true
+            Certificate = $Certificate
         }
         Invoke-RestMethod @splatRestMethodParameters
     } catch {
@@ -280,30 +265,25 @@ function ConvertTo-RawDataDepartmentObject {
         [System.Collections.Generic.List[object]]$listDepartments = @()
 
         foreach ($department in $Departments.organizationDepartments) {
-            for ($i = 0; $i -lt $department.auxilliaryFields.Length; $i++) {
-                foreach ($auxField in $department.auxilliaryFields){
-                    $auxFieldObj = [PSCustomObject]@{
-                        FieldName = $auxField[$i].NameCode.codeValue
-                        FieldCode = $auxField[$i].stringValue
-                    }
+
+            [System.Collections.Generic.List[object]]$auxFieldObjects = @()
+
+            foreach ($auxField in $department.auxilliaryFields){
+                                                
+                        $auxFieldObj = [PSCustomObject]@{
+                        FieldName = $auxField.NameCode.codeValue
+                        FieldCode = $auxField.stringValue
+                        }
+
+                        $auxFieldObjects.Add($auxFieldObj)                    
                 }
-            }
 
             $departmentObj = [PSCustomObject]@{
                 ExternalId = $department.departmentCode.codeValue
+                Name = $department.departmentCode.longName
                 DisplayName = $department.departmentCode.longName
-                ParentDepartmentCode = $department.parentDepartmentCode.codeValue
-                DepartmentDescription = $department.departmentDescription
-                AssignedLocation = @{
-                    StreetName = $department.assignedLocation.streetName
-                    Number = $department.assignedLocation.buildingNumber
-                    PostalCode = $department.assignedLocation.postalCode
-                    CityName = $department.assignedLocation.cityName
-                    Unit = $department.assignedLocation.unit
-                }
-                ActiveIndicator = $department.activeIndicator
-                EffectiveDate = $department.effectiveDate
-                AuxilliaryFields = $auxFieldObj
+                ParentExternalId = $department.parentDepartmentCode.codeValue
+                ManagerExternalId = $auxFieldObjects[3].FieldCode
             }
             $listDepartments.Add($departmentObj)
         }
@@ -316,13 +296,11 @@ function ConvertTo-RawDataDepartmentObject {
 $connectionSettings = ConvertFrom-Json $configuration
 $splatGetADPDepartments = @{
     BaseUrl = $($connectionSettings.BaseUrl)
-    ClientID = $($connectionSettings.CientID)
+    ClientID = $($connectionSettings.ClientID)
     ClientSecret = $($connectionSettings.ClientSecret)
     CertificatePath = $($connectionSettings.CertificatePath)
     CertificatePassword = $($connectionSettings.CertificatePassword)
     ProxyServer = $($connectionSettings.ProxyServer)
-    DepartmentJson = $($connectionSettings.DepartmentJson)
-    ImportFile = $($connectionSettings.ImportFile)
 }
-Get-ADPWorkers @splatGetADPDepartments
+Get-ADPDepartments @splatGetADPDepartments
 #EndRegion
