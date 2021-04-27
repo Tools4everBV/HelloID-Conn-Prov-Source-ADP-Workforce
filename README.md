@@ -225,3 +225,6 @@ $response | ConvertTo-Json
 ![image](./assets/config.png)
 
 ---
+
+# HelloID Docs
+The official HelloID documentation can be found at: https://docs.helloid.com/
