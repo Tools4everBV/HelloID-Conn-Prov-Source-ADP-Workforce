@@ -274,6 +274,11 @@ function ConvertTo-RawDataDepartmentObject {
                         FieldName = $auxField.NameCode.codeValue
                         FieldCode = $auxField.stringValue
                         }
+                        
+                        if($auxField.NameCode.codeValue -eq 'manager')
+                        {
+                            $managerId = $auxField.stringValue
+                        }
 
                         $auxFieldObjects.Add($auxFieldObj)                    
                 }
@@ -283,7 +288,8 @@ function ConvertTo-RawDataDepartmentObject {
                 Name = $department.departmentCode.longName
                 DisplayName = $department.departmentCode.longName
                 ParentExternalId = $department.parentDepartmentCode.codeValue
-                ManagerExternalId = $auxFieldObjects[3].FieldCode
+                #ManagerExternalId = $auxFieldObjects[3].FieldCode
+                ManagerExternalId = $managerId
             }
             $listDepartments.Add($departmentObj)
         }
