@@ -54,8 +54,6 @@ ADP Workforce is a cloud based HR management platform and provides a set of REST
 
 - The 'Execute on-premises' switch on the 'System' tab is toggled.
 
-![image](./assets/hid.png)
-
 ## Getting started
 
 ### Supported PowerShell versions
