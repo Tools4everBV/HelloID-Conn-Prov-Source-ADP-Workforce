@@ -98,12 +98,6 @@ Both the worker and assigment(s) may contain _custom fields_. Custom fields will
 
 Custom fields can be selected in both the _person_ and _contract_ mapping.
 
-For instance, the customfield for the _FamilyNamePartner_:
-![image](./assets/customFieldFamilyNamePartner.png)
-
-Or the customField for the _ContractHours_:
-![image](./assets/customFieldContractHours.png)
-
 ### Mappings
 
 A basic person and contract mapping is provided. Make sure to further customize these accordingly.
@@ -160,8 +154,6 @@ Workers: <https://github.com/marketplace-esi/postman-samples/blob/master/workfor
 Department: <https://github.com/marketplace-esi/postman-samples/blob/master/workforce/core/success/core-organization-departments-http-200-response.json>
 
 The connector configuration supports an import from a JSON file for both persons and departments.
-
-![image](./assets/fileImport.png)
 
 ### Usage in VSCode
 
@@ -225,8 +217,6 @@ $response | ConvertTo-Json
     - [ ] departments.ps1
 
 3. Fill in the required fields on the 'Configuration' tab.
-
-![image](./assets/config.png)
 
 ---
 
