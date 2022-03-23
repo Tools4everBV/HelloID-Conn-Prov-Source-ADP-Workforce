@@ -55,8 +55,13 @@ function Get-ADPWorkers {
         }
 
         #Invoke-ADPRestMethod @splatADPRestMethodParams | ConvertTo-RawDataPersonObject | ConvertTo-Json -Depth 100
+        $json = [System.Collections.ArrayList]::new()
 
-        $jsonCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(28591).GetBytes((Invoke-ADPRestMethod @splatADPRestMethodParams).Content))
+        Invoke-ADPRestMethod @splatADPRestMethodParams ([ref]$json)
+        $result = $json | ConvertTo-Json -Depth 100
+
+        $jsoncorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(28591).GetBytes($result))
+        # $jsonCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(28591).GetBytes((Invoke-ADPRestMethod @splatADPRestMethodParams).Content))
         ($jsonCorrected | ConvertFrom-Json) | ConvertTo-RawDataPersonObject | ConvertTo-Json -Depth 100
     } catch {
         $ex = $PSItem
@@ -132,7 +137,11 @@ function Invoke-ADPRestMethod {
 
         [Parameter(Mandatory)]
         [X509Certificate]
-        $Certificate
+        $Certificate,
+
+        [parameter(Mandatory=$true)]
+        [ref]
+        $data
     )
 
     $headers = @{
@@ -147,18 +156,34 @@ function Invoke-ADPRestMethod {
 
     try {
         [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+        # fetch the data in smaller chunks, otherwise the API of ADP will return an error 500 Internal Server Error
+        # or an error 503 Server / Service unavailable
+        $take = 100
+        $skip = 0   
 
-        $splatRestMethodParameters = @{
-            Uri             = $Url
-            Method          = $Method
-            Headers         = $headers
-            Proxy           = $proxy
-            UseBasicParsing = $true
-            Certificate     = $Certificate
-            ContentType     = 'application/json;charset=utf-8'
-        }
-        Invoke-WebRequest @splatRestMethodParameters
+        do {
+            $json = $null
+            $urlOffset = $Url + "?$" + "skip=$skip&$" + "top=$take"
+            $skip += 100
+
+            $splatRestMethodParameters = @{
+                Uri             = $urlOffset
+                Method          = $Method
+                Headers         = $headers
+                Proxy           = $proxy
+                UseBasicParsing = $true
+                Certificate     = $Certificate
+            }
+            #Invoke-RestMethod @splatRestMethodParameters
+            $dataset = Invoke-WebRequest @splatRestMethodParameters -ContentType "application/json;charset=utf-8"
+            if (-not [string]::IsNullOrEmpty($dataset.content)){
+                $json = $dataset.content | ConvertFrom-Json
+                $data.value.AddRange($json.workers)
+            }
+            # foreach ($record in $json.workers) { $null = $data.Value.add($record) }
+        } until ( [string]::IsNullOrEmpty($json.workers))
     } catch {
+        $data.Value = $null
         $PSCmdlet.ThrowTerminatingError($PSItem)
     }
 }
@@ -192,7 +217,6 @@ function ConvertTo-RawDataPersonObject {
         [System.Collections.Generic.List[object]]$listWorkers = @()
 
         foreach ($worker in $workers.workers) {
-
 			# only filled associateOID's
             if([string]::IsNullOrWhiteSpace($worker.associateOID)){
                 continue
@@ -204,7 +228,6 @@ function ConvertTo-RawDataPersonObject {
                 }
 
                 if ($null -ne $worker.businessCommunication){
-
                     # The emails array (if not empty) always contains 1 item
                     if ($null -ne $worker.businessCommunication.emails){
                         $EmailAddress = $worker.businessCommunication.emails[0].emailUri
@@ -258,9 +281,7 @@ function ConvertTo-RawDataPersonObject {
                 }
 
                 if ($null -ne $worker.workAssignments){
-
                     foreach ($assignment in $worker.workAssignments){
-
                         # Assignments may contain multiple managers (per assignment). There's no way to specify which manager is primary
                         # We always select the first one in the array
                         if ($null -ne $assignment.reportsTo){
@@ -317,6 +338,12 @@ function ConvertTo-RawDataPersonObject {
                             PayrollFileNumber = $assignment.payrollFileNumber
                             JobCode = $assignment.jobCode.codeValue
                             JobTitle = $assignment.jobCode.longName
+                            #LocationCode = vestiging
+                            # LocationCode = $assignment.assignedWorkLocations.nameCode.codeValue
+                            # LocationName = $assignment.assignedWorkLocations.nameCode.shortName
+                            #HomeLocationCode = standplaats
+                            # HomeLocationCode = $assignment.homeWorkLocation.nameCode.codeValue
+                            # HomeLocationName = $assignment.homeWorkLocation.nameCode.shortName
                             StandardHours = $assignment.standardHours.hoursQuantity
                             StandardHoursQuantity = $assignment.standardHours.unitCode.longName
                             AssignmentCostCenters = $assignmentCostCenter
