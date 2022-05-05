@@ -3,15 +3,15 @@
         {
             "name": "Contact.Business.Phone.Mobile",
             "mode": "field",
-            "value": "BusinessCommunication.Mobile",
+            "value": "BusinessMobile",
             "validation": {
                 "required": false
             }
         },
         {
             "name": "Contact.Personal.Phone.Fixed",
-            "mode": "complex",
-            "value": "BusinessCommunication.LandLine",
+            "mode": "field",
+            "value": "BusinessLandLine",
             "validation": {
                 "required": false
             }
@@ -19,7 +19,7 @@
         {
             "name": "Custom.AssociateOID",
             "mode": "field",
-            "value": "AssocciateOID",
+            "value": "associateOID",
             "validation": {
                 "required": false
             }
@@ -27,7 +27,7 @@
         {
             "name": "Details.BirthDate",
             "mode": "field",
-            "value": "Personal.BirthDate",
+            "value": "person.birthDate",
             "validation": {
                 "required": false
             }
@@ -35,7 +35,7 @@
         {
             "name": "Details.Gender",
             "mode": "field",
-            "value": "Gender",
+            "value": "person.genderCode.codeValue",
             "validation": {
                 "required": false
             }
@@ -45,13 +45,13 @@
             "mode": "field",
             "value": "ExternalId",
             "validation": {
-                "required": false
+                "required": true
             }
         },
         {
             "name": "Name.Convention",
             "mode": "complex",
-            "value": "function convertNameConvention()\r\n{\r\n    let convention =\"\";\r\n    switch(source.CustomFields.naamSamenstelling)\r\n    {\r\n        case \"tiva\":\r\n            convention = \"B\";\r\n        break;\r\n        case \"tiva-wp\":\r\n            convention = \"BP\";\r\n        break;\r\n        case \"tiwp\":\r\n            convention = \"P\";\r\n        break;\r\n        case \"tiwp-va\":\r\n            convention = \"PB\";\r\n        break;\r\n        default:\r\n            convention = \"B\";\r\n        break;\r\n        \r\n    }\r\n\r\n    return convention;\r\n}\r\n\r\nconvertNameConvention()",
+            "value": "function convertNameConvention()\r\n{\r\n    let convention =\"\";\r\n    switch(source.customFields.naamSamenstelling)\r\n    {\r\n        case \"tiva\":\r\n            convention = \"B\";\r\n        break;\r\n        case \"tiva-wp\":\r\n            convention = \"BP\";\r\n        break;\r\n        case \"tiwp\":\r\n            convention = \"P\";\r\n        break;\r\n        case \"tiwp-va\":\r\n            convention = \"PB\";\r\n        break;\r\n        default:\r\n            convention = \"B\";\r\n        break;\r\n        \r\n    }\r\n\r\n    return convention;\r\n}\r\n\r\nconvertNameConvention()",
             "validation": {
                 "required": false
             }
@@ -59,7 +59,7 @@
         {
             "name": "Name.FamilyName",
             "mode": "field",
-            "value": "Personal.Name.legalName.FamilyName",
+            "value": "person.legalName.familyName1",
             "validation": {
                 "required": false
             }
@@ -67,7 +67,7 @@
         {
             "name": "Name.FamilyNamePartner",
             "mode": "field",
-            "value": "CustomFields.partnerFamilyName1",
+            "value": "customFields.partnerFamilyName1",
             "validation": {
                 "required": false
             }
@@ -75,7 +75,7 @@
         {
             "name": "Name.FamilyNamePartnerPrefix",
             "mode": "field",
-            "value": "CustomFields.partnerFamilyName1Prefix",
+            "value": "customFields.partnerFamilyName1Prefix",
             "validation": {
                 "required": false
             }
@@ -83,7 +83,7 @@
         {
             "name": "Name.FamilyNamePrefix",
             "mode": "field",
-            "value": "Personal.Name.legalName.FamilyNamePrefix",
+            "value": "person.legalName.familyName1Prefix",
             "validation": {
                 "required": false
             }
@@ -91,7 +91,7 @@
         {
             "name": "Name.GivenName",
             "mode": "field",
-            "value": "Personal.Name.legalName.GivenName",
+            "value": "person.legalName.givenName",
             "validation": {
                 "required": false
             }
@@ -99,7 +99,7 @@
         {
             "name": "Name.Initials",
             "mode": "field",
-            "value": "Personal.Name.legalName.Initials",
+            "value": "person.legalName.initials",
             "validation": {
                 "required": false
             }
@@ -107,7 +107,7 @@
         {
             "name": "Name.NickName",
             "mode": "field",
-            "value": "Personal.Name.legalName.NickName",
+            "value": "person.legalName.nickName",
             "validation": {
                 "required": false
             }
@@ -117,7 +117,15 @@
         {
             "name": "CostCenter.Code",
             "mode": "field",
-            "value": "CustomFields.costCenter",
+            "value": "customFields.costCenter",
+            "validation": {
+                "required": false
+            }
+        },
+        {
+            "name": "CostCenter.ExternalId",
+            "mode": "field",
+            "value": "customFields.costCenter",
             "validation": {
                 "required": false
             }
@@ -125,15 +133,7 @@
         {
             "name": "CostCenter.Name",
             "mode": "field",
-            "value": "CustomFields.costCenterName",
-            "validation": {
-                "required": false
-            }
-        },
-        {
-            "name": "Custom.CustomTerminationDate",
-            "mode": "complex",
-            "value": "function termDate()\r\n{\r\nreturn sourceContract.TerminationDate;\r\n}\r\ntermDate()",
+            "value": "customFields.costCenterName",
             "validation": {
                 "required": false
             }
@@ -141,7 +141,7 @@
         {
             "name": "Department.DisplayName",
             "mode": "field",
-            "value": "HomeOrganizationalUnit.Name",
+            "value": "organizationalUnit.departmentCode.longName",
             "validation": {
                 "required": false
             }
@@ -149,7 +149,15 @@
         {
             "name": "Department.ExternalId",
             "mode": "field",
-            "value": "HomeOrganizationalUnit.Code",
+            "value": "organizationalUnit.departmentCode.codeValue",
+            "validation": {
+                "required": false
+            }
+        },
+        {
+            "name": "Details.Fte",
+            "mode": "complex",
+            "value": "function getFteValue(){\r\n    let fte = sourceContract.fullTimeEquivalenceRatio / 100;\r\n\r\n    return fte;\r\n}\r\ngetFteValue()",
             "validation": {
                 "required": false
             }
@@ -157,7 +165,7 @@
         {
             "name": "Details.HoursPerWeek",
             "mode": "field",
-            "value": "CustomFields.contractHours",
+            "value": "customFields.contractHours",
             "validation": {
                 "required": false
             }
@@ -165,7 +173,7 @@
         {
             "name": "Details.Percentage",
             "mode": "field",
-            "value": "WorkPercentage",
+            "value": "fullTimeEquivalenceRatio",
             "validation": {
                 "required": false
             }
@@ -173,7 +181,7 @@
         {
             "name": "Details.Sequence",
             "mode": "field",
-            "value": "PayrollFileNumber",
+            "value": "itemID",
             "validation": {
                 "required": false
             }
@@ -181,7 +189,7 @@
         {
             "name": "EndDate",
             "mode": "field",
-            "value": "TerminationDate",
+            "value": "terminationDate",
             "validation": {
                 "required": false
             }
@@ -189,47 +197,31 @@
         {
             "name": "ExternalId",
             "mode": "field",
-            "value": "PayrollFileNumber",
+            "value": "externalId",
             "validation": {
-                "required": false
-            }
-        },
-        {
-            "name": "Location.Code",
-            "mode": "field",
-            "value": "PositionId",
-            "validation": {
-                "required": false
-            }
-        },
-        {
-            "name": "Location.Name",
-            "mode": "field",
-            "value": "PositionTitle",
-            "validation": {
-                "required": false
+                "required": true
             }
         },
         {
             "name": "Manager.DisplayName",
-            "mode": "field",
-            "value": "ReportsTo.FormattedName",
+            "mode": "complex",
+            "value": "function getManagerDisplayName(){\r\n    let managerDisplayName = \"\";\r\n\r\n    if (typeof sourceContract.manager != 'undefined' && sourceContract.manager) {\r\n        if (typeof sourceContract.manager.reportsToWorkerName.formattedName != 'undefined' && sourceContract.manager.reportsToWorkerName.formattedName) {\r\n            managerDisplayName = sourceContract.manager.reportsToWorkerName.formattedName;\r\n        }\r\n    }\r\n\r\n    return managerDisplayName;\r\n}\r\ngetManagerDisplayName()",
             "validation": {
                 "required": false
             }
         },
         {
             "name": "Manager.ExternalId",
-            "mode": "field",
-            "value": "ReportsTo.WorkerID",
+            "mode": "complex",
+            "value": "function getManagerExternalId(){\r\n    let managerExternalId = \"\";\r\n\r\n    if (typeof sourceContract.manager != 'undefined' && sourceContract.manager) {\r\n        if (typeof sourceContract.manager.workerID.idValue != 'undefined' && sourceContract.manager.workerID.idValue) {\r\n            managerExternalId = sourceContract.manager.workerID.idValue;\r\n        }\r\n    }\r\n\r\n    return managerExternalId;\r\n}\r\ngetManagerExternalId()",
             "validation": {
                 "required": false
             }
         },
         {
             "name": "Organization.Name",
-            "mode": "fixed",
-            "value": "My Organization Name",
+            "mode": "complex",
+            "value": "function getOrganizationName(){\r\n    let organizationName = \"\";\r\n\r\n    if (typeof sourceContract.organizationalUnit.customFields != 'undefined' && sourceContract.organizationalUnit.customFields) {\r\n        organizationName = sourceContract.organizationalUnit.customFields.instelling;\r\n    }\r\n\r\n    return organizationName;\r\n}\r\ngetOrganizationName()",
             "validation": {
                 "required": false
             }
@@ -237,7 +229,7 @@
         {
             "name": "StartDate",
             "mode": "field",
-            "value": "ActualStartDate",
+            "value": "actualStartDate",
             "validation": {
                 "required": false
             }
@@ -245,7 +237,7 @@
         {
             "name": "Title.Code",
             "mode": "field",
-            "value": "JobCode",
+            "value": "jobCode.codeValue",
             "validation": {
                 "required": false
             }
@@ -253,7 +245,7 @@
         {
             "name": "Title.ExternalId",
             "mode": "field",
-            "value": "JobCode",
+            "value": "jobCode.codeValue",
             "validation": {
                 "required": false
             }
@@ -261,7 +253,7 @@
         {
             "name": "Title.Name",
             "mode": "field",
-            "value": "JobTitle",
+            "value": "jobCode.longName",
             "validation": {
                 "required": false
             }
