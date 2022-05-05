@@ -116,24 +116,24 @@
     "contractMappings": [
         {
             "name": "CostCenter.Code",
-            "mode": "field",
-            "value": "customFields.costCenter",
+            "mode": "complex",
+            "value": "function getCostCenterCode(){\r\n    let costCenterCode = \"\";\r\n\r\n    if (typeof sourceContract.customFields != 'undefined' && sourceContract.customFields) {\r\n        if (typeof sourceContract.customFields.costCenter != 'undefined' && sourceContract.customFields.costCenter) {\r\n            costCenterCode = sourceContract.customFields.costCenter;\r\n        }\r\n    }\r\n\r\n    return costCenterCode;\r\n}\r\ngetCostCenterCode()",
             "validation": {
                 "required": false
             }
         },
         {
             "name": "CostCenter.ExternalId",
-            "mode": "field",
-            "value": "customFields.costCenter",
+            "mode": "complex",
+            "value": "function getCostCenterCode(){\r\n    let costCenterCode = \"\";\r\n\r\n    if (typeof sourceContract.customFields != 'undefined' && sourceContract.customFields) {\r\n        if (typeof sourceContract.customFields.costCenter != 'undefined' && sourceContract.customFields.costCenter) {\r\n            costCenterCode = sourceContract.customFields.costCenter;\r\n        }\r\n    }\r\n\r\n    return costCenterCode;\r\n}\r\ngetCostCenterCode()",
             "validation": {
                 "required": false
             }
         },
         {
             "name": "CostCenter.Name",
-            "mode": "field",
-            "value": "customFields.costCenterName",
+            "mode": "complex",
+            "value": "function getCostCenterName(){\r\n    let costCenterName = \"\";\r\n\r\n    if (typeof sourceContract.customFields != 'undefined' && sourceContract.customFields) {\r\n        if (typeof sourceContract.customFields.costCenterName  != 'undefined' && sourceContract.customFields.costCenterName) {\r\n            costCenterName = sourceContract.customFields.costCenterName ;\r\n        }\r\n    }\r\n\r\n    return costCenterName;\r\n}\r\ngetCostCenterName()",
             "validation": {
                 "required": false
             }
