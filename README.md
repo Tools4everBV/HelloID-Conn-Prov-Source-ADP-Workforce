@@ -8,7 +8,7 @@
 
 <p align="center">
   <img src="https://user-images.githubusercontent.com/69046642/166976515-105e6dcc-bf56-4fca-8d22-8ae2e2995ee2.jpg">
-</p>![adp]()
+</p>
 
 
 <!-- Version -->
@@ -55,7 +55,7 @@ Note that the _'HelloID-Conn-Prov-Source-ADP-Workforce'_ implementation is based
 
 ### API's being used by the HelloID connector
 | _API_ | _Description_|
-| - | - | - |
+| - | - |
 | _Worker-Demographics_ | _Contains the employees personal and contract data_ |
 | _Organization-Departments_ | _Contains data about the organisation structure_ |
 
@@ -85,7 +85,7 @@ In order to retrieve data from the ADP Workforce API's, an AccessToken has to be
 Tokens only have access to a certain API scope. Default the scope is set to: 'worker-demographics organization-departments'. Data outside this scope from other API's cannot be retrieved
 
 ### Paging
-Paging is only supported by ADP for the 'worker-demograpics' endpoint. Paging is not yet implemented in the connector.
+Paging is only supported by ADP for the 'worker-demographics' endpoint. Paging is implemented in the connector for the 'worker-demographics' endpoint.
 
 ### Assignments
 If a worker has multiple assignments, each assigment will be imported in HelloID.

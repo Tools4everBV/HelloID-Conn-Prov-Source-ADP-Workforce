@@ -219,6 +219,14 @@
             }
         },
         {
+            "name": "Organization.Name",
+            "mode": "complex",
+            "value": "function getOrganizationName(){\r\n    let organizationName = \"\";\r\n\r\n    if (typeof sourceContract.organizationalUnit.customFields != 'undefined' && sourceContract.organizationalUnit.customFields) {\r\n        organizationName = sourceContract.organizationalUnit.customFields.instelling;\r\n    }\r\n\r\n    return organizationName;\r\n}\r\ngetOrganizationName()",
+            "validation": {
+                "required": false
+            }
+        },
+        {
             "name": "StartDate",
             "mode": "field",
             "value": "actualStartDate",
