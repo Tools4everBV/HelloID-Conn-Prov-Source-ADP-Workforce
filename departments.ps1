@@ -1,122 +1,48 @@
 #####################################################
 # HelloID-Conn-Prov-SOURCE-ADP-Workforce-Departments
 #
-# Version: 1.0.5.1
+# Version: 1.0.5.2
 #####################################################
 
-#Region External functions
-function Get-ADPDepartments {
-    <#
-    .SYNOPSIS
-    Retrieves the Departments from ADP Workforce
+#region Config
+$Config = $Configuration | ConvertFrom-Json
 
-    .DESCRIPTION
-    Retrieves the Departments from ADP Workforce
-
-    .PARAMETER BaseUrl
-    The BaseUrl to the ADP Workforce environment. For example: https://api.eu.adp.com
-
-    .PARAMETER ClientID
-    The ClientID for the ADP Workforce environment. This will be provided by ADP
-
-    .PARAMETER ClientSecret
-
-    The ClientSecret for the ADP Workforce environment. This will be provided by ADP
-
-    .PARAMETER CertificatePath
-    The location to the the private key of the x.509 certificate on the server where the HelloID agent and provisioning agent are running
-    Make sure to use the private key for the certificate that's used to generate a ClientID and ClientSecret and for activating the required API's
-
-    .PARAMETER CertificatePassword
-    The password for the *.pfx certificate
-
-    .PARAMETER ProxyServer
-    The URL (or IP Address) to the ProxyServer in the network. Leave empty if no ProxyServer is being used
-    #>
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory)]
-        [String]
-        $BaseUrl,
-
-        [Parameter(Mandatory)]
-        [String]
-        $ClientID,
-
-        [Parameter(Mandatory)]
-        [String]
-        $ClientSecret,
-
-        [Parameter(Mandatory)]
-        [String]
-        $CertificatePath,
-
-        [Parameter(Mandatory)]
-        [String]
-        $CertificatePassword,
-        
-        [String]
-        $ProxyServer
-    )
-
-    try {
-        $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($CertificatePath, $CertificatePassword)
-        $accessToken = Get-ADPAccessToken -ClientID $ClientID -ClientSecret $ClientSecret -Certificate $certificate
-    } catch [System.Net.WebException] {
-        $webEx = $PSItem
-        $errorObj = ($($webEx.ErrorDetails.Message) | ConvertFrom-Json).response
-        $PSCmdlet.WriteWarning("Could not retrieve ADP AccessToken. Error: '$($errorObj.applicationCode.message)' Code: '$($errorObj.applicationCode.code)'")
-    } catch [System.Exception] {
-        $ex = $PSItem
-        $PSCmdlet.WriteWarning("Could not retrieve ADP AccessToken. Error: '$($ex.Exception.Message)'")
-    }
-
-    try {
-        $splatADPRestMethodParams = @{
-            Url = "$BaseUrl/core/v1/organization-departments"
-            Method = 'GET'
-            AccessToken = $accessToken.access_token
-            ProxyServer = $ProxyServer
-            Certificate = $certificate
-        }
-        Invoke-ADPRestMethod @splatADPRestMethodParams | ConvertTo-RawDataDepartmentObject | ConvertTo-Json -Depth 100
-    } catch [System.Net.WebException] {
-        $webEx = $PSItem
-        $errorObj = ($($webEx.ErrorDetails.Message) | ConvertFrom-Json).response
-        $PSCmdlet.WriteError("Could not retrieve ADP Departments. Error: '$($errorObj.applicationCode.message)' Code: '$($errorObj.applicationCode.code)'")
-    } catch [System.Exception] {
-        $ex = $PSItem
-        $PSCmdlet.WriteWarning("Could not retrieve ADP Departments. Error: '$($ex.Exception.Message)'")
-    }
+<#
+$Config = @{
+    BaseUrl             = ''
+    ClientID            = ''
+    ClientSecret        = ''
+    CertificatePath     = ''
+    PowerShellX509      = ''
+    CertificatePassword = ''
+    ProxyServer         = ''
+    ImportFile          = ''
+    WorkerJson          = ''
+    DepartmentJson      = ''
 }
-#EndRegion
+#>
 
-#Region Internal functions
+Write-Verbose -Verbose -Message "$(@(
+    "Start person Import:"
+    "Base URL: $($Config.BaseUrl)"
+    "ClientID: $($Config.ClientID)"
+    "Certificate option: $(if (-not [string]::IsNullOrEmpty($Config.PowerShellX509)){'Bytestream from HelloID'} else {'Retrieve certificate from local computer path'})"
+    if ([string]::IsNullOrEmpty($Config.PowerShellX509)){"Certificate path: $($Config.CertificatePath)"}
+    "Proxy Server: $( if (-not [string]::IsNullOrEmpty($Config.ProxyServer)){$Config.ProxyServer} else {$false})"
+    "Import File: $($Config.ImportFile)"
+    if ($Config.ImportFile) {"WorkerJson: $($Config.WorkerJson)"}
+    if ($Config.ImportFile) {"DepartmentJson: $($Config.DepartmentJson)"}
+) -join "`n")"
+
+# Set TLS to accept TLS 1.2
+[Net.ServicePointManager]::SecurityProtocol = @(
+    [Net.SecurityProtocolType]::Tls12
+)
+
+#endregion Config
+
+#region External functions
 function Get-ADPAccessToken {
-    <#
-    .SYNOPSIS
-    Retrieves an AccessToken from the ADP API using the standard <Invoke-RestMethod> cmdlet
-
-    .DESCRIPTION
-    The ADP Workforce API's uses OAuth for authentication\authorization.
-    Before data can be retrieved from the API's, an AccessToken has to obtained. The AccessToken is used for all consecutive calls to the ADP Workforce API's. 
-    Tokens only have access to a certain API scope. Default the scope is set to: 'worker-demographics organization-departments'. 
-    Data outside this scope from other API's cannot be retrieved
-
-    .PARAMETER ClientID
-    The ClientID for the ADP Workforce environment. This will be provided by ADP
-
-    .PARAMETER ClientSecret
-    The ClientSecret for the ADP Workforce environment. This will be provided by ADP
-
-    .PARAMETER Certificate
-    The [X509Certificate] object containing the *.pfx
-
-    .EXAMPLE
-    $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new("the path to the *.pfx file", "Password for the *.pfx certificate")
-
-    Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_Secret' -Certifcate $certificate
-    #>
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
@@ -136,55 +62,27 @@ function Get-ADPAccessToken {
     }
 
     $body = @{
-        client_id = $ClientID
+        client_id     = $ClientID
         client_secret = $ClientSecret
-        grant_type = "client_credentials"
+        grant_type    = "client_credentials"
     }
 
     try {
         $splatRestMethodParameters = @{
-            Uri = 'https://accounts.eu.adp.com/auth/oauth/v2/token'
-            Method = 'POST'
-            Headers = $headers
-            Body = $body
+            Uri         = 'https://accounts.eu.adp.com/auth/oauth/v2/token'
+            Method      = 'POST'
+            Headers     = $headers
+            Body        = $body
             Certificate = $certificate
         }
         Invoke-RestMethod @splatRestMethodParameters
-    } catch {
+    }
+    catch {
         $PSCmdlet.ThrowTerminatingError($PSItem)
     }
 }
 
 function Invoke-ADPRestMethod {
-    <#
-    .SYNOPSIS
-    Retrieves data from the ADP API's
-
-    .DESCRIPTION
-    Retrieves data from the ADP API's using the standard <Invoke-RestMethod> cmdlet
-
-    .PARAMETER Url
-    The BaseUrl to the ADP Workforce environment. For example: https://test-api.adp.com
-
-    .PARAMETER Method
-    The CRUD operation for the request. Valid HttpMethods inlcude: GET and POST. Note that the ADP API's needed for the connector will only support 'GET'
-
-    .PARAMETER AccessToken
-    The AccessToken retrieved by the <Get-ADPAccessToken> function
-
-    .PARAMETER ProxyServer
-    The URL (or IP Address) to the ProxyServer in the network. Leave empty if no ProxyServer is being used
-
-    .PARAMETER Certificate
-    The [X509Certificate] object containing the *.pfx
-
-    .EXAMPLE
-    $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new("the path to the *.pfx file", "Password for the *.pfx certificate")
-
-    Invoke-ADPRestMethod -Uri 'https://test-api.adp.com/hr/v2/worker-demographics' -Method 'GET' -AccessToken '0000-0000-0000-0000' -Certifcate $certificate
-
-    Returns the raw JSON data containing all workers from ADP Workforce
-    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -213,9 +111,10 @@ function Invoke-ADPRestMethod {
         "Authorization" = "Bearer $AccessToken"
     }
 
-    if ([string]::IsNullOrEmpty($ProxyServer)){
+    if ([string]::IsNullOrEmpty($ProxyServer)) {
         $proxy = $null
-    } else {
+    }
+    else {
         $proxy = $ProxyServer
     }
 
@@ -223,90 +122,104 @@ function Invoke-ADPRestMethod {
         [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 
         $splatRestMethodParameters = @{
-            Uri = $Url
-            Method = $Method
-            Headers = $headers
-            Proxy = $proxy
-            UseBasicParsing = $true
+            Uri         = $Url
+            Method      = $Method
+            Headers     = $headers
+            Proxy       = $proxy
             Certificate = $Certificate
+            ContentType = 'application/json;charset=utf-8'
         }
-        Invoke-RestMethod @splatRestMethodParameters
-    } catch {
+
+        $WebRequest = Invoke-WebRequest @splatRestMethodParameters
+        [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(28591).GetBytes($WebRequest.content)) | ConvertFrom-Json
+
+    }
+    catch {
         $PSCmdlet.ThrowTerminatingError($PSItem)
     }
 }
 
-function ConvertTo-RawDataDepartmentObject {
-    <#
-    .SYNOPSIS
-    Converts the departments objects to a raw data department object
-
-    .DESCRIPTION
-    Converts the departments objects to a [RawDataDepartmentObject] that can be imported into HelloID
-
-    .PARAMETER Departments
-    The list of departments from ADP Workforce
-
-    .OUTPUTS
-    System.Object[]
-    #>
-    [OutputType([System.Object[]])]
+function Resolve-HTTPError {
     [CmdletBinding()]
     param (
-        [Parameter(
-            Mandatory,
-            Position = 0,
+        [Parameter(Mandatory,
             ValueFromPipeline
         )]
-        [PSObject]
-        $Departments
+        [object]$ErrorObject
     )
+
     process {
-        [System.Collections.Generic.List[object]]$listDepartments = @()
-
-        foreach ($department in $Departments.organizationDepartments) {
-
-            [System.Collections.Generic.List[object]]$auxFieldObjects = @()
-
-            foreach ($auxField in $department.auxilliaryFields){
-                                                
-                        $auxFieldObj = [PSCustomObject]@{
-                        FieldName = $auxField.NameCode.codeValue
-                        FieldCode = $auxField.stringValue
-                        }
-                        
-                        if($auxField.NameCode.codeValue -eq 'manager')
-                        {
-                            $managerId = $auxField.stringValue
-                        }
-
-                        $auxFieldObjects.Add($auxFieldObj)                    
-                }
-
-            $departmentObj = [PSCustomObject]@{
-                ExternalId = $department.departmentCode.codeValue
-                Name = $department.departmentCode.longName
-                DisplayName = $department.departmentCode.longName
-                ParentExternalId = $department.parentDepartmentCode.codeValue
-                #ManagerExternalId = $auxFieldObjects[3].FieldCode
-                ManagerExternalId = $managerId
-            }
-            $listDepartments.Add($departmentObj)
+        $HttpErrorObj = @{
+            FullyQualifiedErrorId = $ErrorObject.FullyQualifiedErrorId
+            MyCommand             = $ErrorObject.InvocationInfo.MyCommand
+            RequestUri            = $ErrorObject.TargetObject.RequestUri
         }
-        $listDepartments
+        if ($ErrorObject.Exception.GetType().FullName -eq 'Microsoft.PowerShell.Commands.HttpResponseException') {
+            $HttpErrorObj['ErrorMessage'] = $ErrorObject.ErrorDetails.Message
+        }
+        elseif ($ErrorObject.Exception.GetType().FullName -eq 'System.Net.WebException') {
+            $stream = $ErrorObject.Exception.Response.GetResponseStream()
+            $stream.Position = 0
+            $streamReader = New-Object System.IO.StreamReader $Stream
+            $errorResponse = $StreamReader.ReadToend()
+            $HttpErrorObj['ErrorMessage'] = $errorResponse
+        }
+        Write-Output "'$($HttpErrorObj.ErrorMessage)', TargetObject: '$($HttpErrorObj.RequestUri), InvocationCommand: '$($HttpErrorObj.MyCommand)"
     }
 }
-#EndRegion
+#endregion External functions
 
-#Region Script
-$connectionSettings = ConvertFrom-Json $configuration
-$splatGetADPDepartments = @{
-    BaseUrl = $($connectionSettings.BaseUrl)
-    ClientID = $($connectionSettings.ClientID)
-    ClientSecret = $($connectionSettings.ClientSecret)
-    CertificatePath = $($connectionSettings.CertificatePath)
-    CertificatePassword = $($connectionSettings.CertificatePassword)
-    ProxyServer = $($connectionSettings.ProxyServer)
+#region Script
+if (-not [string]::IsNullOrEmpty($Config.PowerShellX509)) {
+    #Use for cloud PowerShell flow
+    $RAWCertificate = [system.convert]::FromBase64String($Config.PowerShellX509)
+    $Certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($RAWCertificate, $Config.CertificatePassword)
 }
-Get-ADPDepartments @splatGetADPDepartments
-#EndRegion
+elseif (-not [string]::IsNullOrEmpty($Config.CertificatePath)) {
+    #Use for local machine with certificate file
+    $Certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($Config.CertificatePath, $Config.CertificatePassword)
+}
+else {
+    Throw "No certificate configured"
+}
+
+
+try {
+    $AccessToken = Get-ADPAccessToken -ClientID $Config.ClientID -ClientSecret $Config.ClientSecret -Certificate $certificate
+}
+catch {
+
+    if ( $($_.Exception.GetType().FullName -eq 'Microsoft.PowerShell.Commands.HttpResponseException') -or $($_.Exception.GetType().FullName -eq 'System.Net.WebException')) {
+        $errorMessage = Resolve-HTTPError -Error $_
+        Write-Verbose "Could not retrieve ADP Workforce employees. Error: $errorMessage"
+    }
+    else {
+        Write-Verbose "Could not retrieve ADP Workforce employees. Error: $($_.Exception.Message)"
+    }
+}
+
+$splatADPRestMethodParams = @{
+    Url         = "$($Config.BaseUrl)/core/v1/organization-departments"
+    Method      = 'GET'
+    AccessToken = $AccessToken.access_token
+    ProxyServer = $Config.ProxyServer
+    Certificate = $Certificate
+}
+
+$ADPDepartments = Invoke-ADPRestMethod @splatADPRestMethodParams
+
+$ADPDepartments.organizationDepartments | ForEach-Object {
+    [PSCustomObject]@{
+        ExternalId        = $_.departmentCode.codeValue
+        Name              = $_.departmentCode.longName
+        DisplayName       = $_.departmentCode.longName
+        ParentExternalId  = $_.parentDepartmentCode.codeValue
+        #ManagerExternalId = $auxFieldObjects[3].FieldCode
+        ManagerExternalId = foreach ($auxField in $department.auxilliaryFields) {
+            if ($auxField.NameCode.codeValue -eq 'manager') {
+                $auxField.stringValue
+            }
+        }
+    } | ConvertTo-Json -Depth 100
+}
+#endregion Script

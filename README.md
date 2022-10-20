@@ -13,7 +13,7 @@ Note that the _'HelloID-Conn-Prov-Source-ADP-Workforce'_ implementation is based
 ### Todo
 
 - [X] Add _departments.ps1_
-- [ ] Add pagination for the _workerDemographics_ endpoint
+- [X] Add pagination for the _workerDemographics_ endpoint
 - [X] Add logic to obtain an AccessToken inluding a *.pfx certificate
 
 ## Table of contents
@@ -75,6 +75,16 @@ APD will register an application that's allowed to access the specified API's. _
 ### X.509 certificate / Private key
 
 The private key (*.pfx) belonging to the X.590 certificate must be used in order obtain an accesstoken.
+
+There are two options available to import the *.pfx:
+
+Option 1 called "Certificatepath" takes the path to the *.pfx on the machine on which the agent is configured.
+
+Option 2 called "Application PFX Certificate" takes a base64 string of the *.pfx file, which powershell converts to a certificate object. This eliminates the need for a local on-premises agent.
+
+Execute the following code to get the base64 of your *.pfx file in your clipboard: [System.Convert]::ToBase64String((get-content "C:\*.pfx" -Encoding Byte)) | Set-Clipboard
+
+To use option 2, leave option 1 empty.
 
 ### AccessToken
 
