@@ -35,6 +35,7 @@ function Get-ADPWorkers {
     try {
         $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($CertificatePath, $CertificatePassword)
         $accessToken = Get-ADPAccessToken -ClientID $ClientID -ClientSecret $ClientSecret -Certificate $certificate
+    
     } catch {
         $ex = $PSItem
         if ( $($ex.Exception.GetType().FullName -eq 'Microsoft.PowerShell.Commands.HttpResponseException') -or $($ex.Exception.GetType().FullName -eq 'System.Net.WebException')) {
@@ -46,18 +47,43 @@ function Get-ADPWorkers {
     }
 
     try {
-        $splatADPRestMethodParams = @{
-            Url         = "$BaseUrl/hr/v2/worker-demographics"
-            Method      = 'GET'
-            AccessToken = $accessToken.access_token
-            ProxyServer = $ProxyServer
-            Certificate = $certificate
+        $page = 0
+        while($true)
+        {
+            $skip = $page * 50
+            $currentct = $skip + 50
+            write-information "Getting next $currentct users"
+            
+            $splatADPRestMethodParams = @{
+                Url         = "$BaseUrl/hr/v2/worker-demographics?`$top=50&`$skip=$skip"
+                Method      = 'GET'
+                AccessToken = $accessToken.access_token
+                ProxyServer = $ProxyServer
+                Certificate = $certificate
+            }
+
+            #Invoke-ADPRestMethod @splatADPRestMethodParams | ConvertTo-RawDataPersonObject | ConvertTo-Json -Depth 100
+
+            $jsonCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(28591).GetBytes((Invoke-ADPRestMethod @splatADPRestMethodParams).Content))
+            $results = ($jsonCorrected | ConvertFrom-Json)
+            
+          #  ($jsonCorrected | ConvertFrom-Json) | ConvertTo-RawDataPersonObject | ConvertTo-Json -Depth 100
+           
+
+            foreach ($item in ($jsonCorrected | ConvertFrom-Json) )
+            {
+                ConvertTo-RawDataPersonObject $item | ConvertTo-Json -Depth 100
+            }
+            if($results.workers.count -lt 50)
+            {
+                break
+            }
+            else
+            {
+                $page++
+            }
         }
-
-        #Invoke-ADPRestMethod @splatADPRestMethodParams | ConvertTo-RawDataPersonObject | ConvertTo-Json -Depth 100
-
-        $jsonCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(28591).GetBytes((Invoke-ADPRestMethod @splatADPRestMethodParams).Content))
-        ($jsonCorrected | ConvertFrom-Json) | ConvertTo-RawDataPersonObject | ConvertTo-Json -Depth 100
+        
     } catch {
         $ex = $PSItem
         if ( $($ex.Exception.GetType().FullName -eq 'Microsoft.PowerShell.Commands.HttpResponseException') -or $($ex.Exception.GetType().FullName -eq 'System.Net.WebException')) {
@@ -98,7 +124,7 @@ function Get-ADPAccessToken {
 
     try {
         $splatRestMethodParameters = @{
-            Uri         = 'https://accounts.eu.adp.com/auth/oauth/v2/token'
+            Uri         = "$BaseUrl/auth/oauth/v2/token"
             Method      = 'POST'
             Headers     = $headers
             Body        = $body
@@ -158,6 +184,7 @@ function Invoke-ADPRestMethod {
             ContentType     = 'application/json;charset=utf-8'
         }
         Invoke-WebRequest @splatRestMethodParameters
+        
     } catch {
         $PSCmdlet.ThrowTerminatingError($PSItem)
     }
