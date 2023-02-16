@@ -64,11 +64,11 @@ _PowerShell 7.0.3 Core_ is not yet supported.
 
 ### X.509 certificate / public key
 
-To get access to the ADP Workforce API's, a x.509 certificate is needed. This certificate has to be created by the customer.
-
-The public key belonging to the certificate, must be send ADP. ADP will then generate a ClientID and ClientSecret and will activate the required API's.
-
-There are a few options for creating certificates. One of them being the 'OpenSSL' utility. Available on Linux/Windows. https://www.openssl.org/
+To get access to the ADP Workforce API's, a x.509 certificate is needed. Please follow the steps below to provide this.
+1. The customer creates a CSR and sends this to ADP. Please follow the [ADP documentation to create the Certificate Signing Request](https://developers.adp.com/articles/guides/adp-marketplace---getting-started?chapter=2)
+2. ADP will create the X.509 certificaat, client_id and client_secret and will send these to the customer.
+3. The customer sends the X.509 certificaat, client_id and client_secret to Tools4ever (or any other implementer).
+> **Note:** Each ADP environment requires its own certificate. If there is an Accept and a Production environment, 2 certificates are required.
 
 APD will register an application that's allowed to access the specified API's. _worker-demographics_ and _organizational_departments_. Other API's within the ADP Workforce environment cannot be accessed.
 
