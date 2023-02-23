@@ -138,7 +138,7 @@ Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_S
 
     try {
         $splatRestMethodParameters = @{
-            Uri         = 'https://accounts.eu.adp.com/auth/oauth/v2/token'
+            Uri         = "$BaseUrl/auth/oauth/v2/token"
             Method      = 'POST'
             Headers     = $headers
             Body        = $body
