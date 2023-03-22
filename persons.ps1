@@ -451,10 +451,6 @@ try {
             $_.PSObject.Properties.Remove('customFieldGroup')
         }
 
-        if (-not[String]::IsNullOrEmpty($_.customFields.partnerFamilyName1)) {
-            'test'
-        }
-
         $contractsList = [System.Collections.ArrayList]::new()
 
         # Enhance assignments for person
@@ -472,7 +468,7 @@ try {
                         }
                     )
                     $assignmentCustomFields = $assignment.customFieldGroup | Select-Object -Property $properties
-                    $_.customFields = $assignmentCustomFields
+                    $assignment.customFields = $assignmentCustomFields
 
                     # Remove unneccesary fields from  object (to avoid unneccesary large objects)
                     # Remove customFieldGroup, since the data is transformed into customFields property
