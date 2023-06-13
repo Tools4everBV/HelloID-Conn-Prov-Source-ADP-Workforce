@@ -3,7 +3,10 @@
 | :information_source: Information |
 |:---------------------------|
 | This repository contains the connector and configuration code only. The implementer is responsible to acquire the connection details such as username, password, certificate, etc. You might even need to sign a contract or agreement with the supplier before implementing this connector. Please contact the client's application manager to coordinate the connector requirements.       |
-
+<br />
+<p align="center">
+  <img src="https://www.tools4ever.nl/connector-logos/adp-logo.png">
+</p> 
 <br />
 
 The _'HelloID-Conn-Prov-Source-ADP-Workforce'_ connector needs to be executed 'on-premises'. Make sure you have 'Windows PowerShell 5.1' installed on the server where the 'HelloID agent and provisioning agent' are running, and that the 'Execute on-premises' switch is toggled.
