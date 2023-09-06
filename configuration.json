@@ -36,7 +36,20 @@
             "label": "CertificatePath",
             "placeholder": "C:\\ADP.pfx",
             "description": "The location to the 'private key of the x.509 certificate' on the server where the HelloID agent and provisioning agent are running. Make sure to use the private key for the certificate that's used to generate a ClientID and ClientSecret and for activating the required API's",
-            "required": true
+            "required": false
+        }
+    },
+    {
+        "key": "CertificateBase64",
+        "type": "textarea",
+        "defaultValue": "",
+        "templateOptions": {
+            "label": "Base64 string of certificate",
+            "type": "password",
+            "placeholder": "<Base64 string export of certificate>",
+            "description": "[System.Convert]::ToBase64String((get-content \"C:\\HelloID-ADP.pfx\" -Encoding Byte))",
+            "rows": 16,
+            "required": false
         }
     },
     {
@@ -56,6 +69,16 @@
             "label": "ProxyServer",
             "placeholder": "http://localhost:8888",
             "description": "The URL (or IP Address) to the ProxyServer in the network. Leave empty if no ProxyServer is being used",
+            "required": false
+        }
+    },
+    {
+        "key": "isDebug",
+        "type": "checkbox",
+        "defaultValue": false,
+        "templateOptions": {
+            "label": "Toggle debug logging",
+            "description": "When toggled, debug logging will be displayed",
             "required": false
         }
     }
