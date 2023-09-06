@@ -340,17 +340,14 @@ try {
     # Sort on ExternalId (to make sure the order is always the same)
     $departments = $departments | Sort-Object -Property { $_.departmentCode.codeValue }
 
-    $departments | Add-Member -MemberType NoteProperty -Name "customFields" -Value $null -Force
+    $departments | Add-Member -MemberType NoteProperty -Name "customFields" -Value ([PSCustomObject]@{}) -Force
     $departments | ForEach-Object {
-        if ($null -ne $_.auxilliaryFields) {
+        if (($_.auxilliaryFields | Measure-Object).Count -ge 1) {
             # Transform auxilliaryFields on departments
-            $properties = @(
-                foreach ($attribute in $_.auxilliaryFields) {
-                    @{ Name = "$($attribute.nameCode.codeValue)"; Expression = { "$($attribute.stringValue)" }.GetNewClosure() }
-                }
-            )
-            $departmentAuxilliaryFields = $_ | Select-Object -Property $properties
-            $_.customFields = $departmentAuxilliaryFields
+            foreach ($attribute in $_.auxilliaryFields) {
+                # Add a property for each field in object
+                $_.customFields | Add-Member -MemberType NoteProperty -Name "$($attribute.nameCode.codeValue)" -Value "$($attribute.stringValue)" -Force
+            }
 
             # Remove unneccesary fields from  object (to avoid unneccesary large objects and confusion when mapping)
             # Remove auxilliaryFields ,since the data is transformed into seperate object
@@ -368,7 +365,7 @@ catch {
     throw "Could not query Departments. Error Message: $($errorMessage.AuditErrorMessage)"
 }
 
-try{
+try {
     Write-Verbose 'Enhancing and exporting department objects to HelloID'
 
     # Set counter to keep track of actual exported person objects
@@ -382,6 +379,9 @@ try{
     $departments | Add-Member -MemberType NoteProperty -Name "ParentExternalId" -Value $null -Force
     
     $departments | ForEach-Object {
+        # Create department object to log on which department the error occurs
+        $departmentInProcess = $_
+
         # Set required fields for HelloID
         $_.ExternalId = $_.departmentCode.codeValue
         $_.DisplayName = $_.departmentCode.longName
@@ -405,6 +405,10 @@ catch {
     $ex = $PSItem
     $errorMessage = Get-ErrorMessage -ErrorObject $ex
 
-    Write-Verbose "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($($errorMessage.VerboseErrorMessage))"  
+    # If debug logging is toggled, log on which person and line the error occurs
+    if ($c.isDebug -eq $true) {
+        Write-Warning "Error occurred for person [$($personInProcess.ExternalId)]. Error at Line [$($ex.InvocationInfo.ScriptLineNumber)]: $($ex.InvocationInfo.Line). Error: $($errorMessage.VerboseErrorMessage)"
+    }
+    
     throw "Could not enhance and export department objects to HelloID. Error Message: $($errorMessage.AuditErrorMessage)"
 }
