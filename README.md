@@ -9,12 +9,15 @@
 </p> 
 <br />
 
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/69046642/166976515-105e6dcc-bf56-4fca-8d22-8ae2e2995ee2.jpg">
+</p>
+
+
 <!-- Version -->
 ## Version
 | Version | Description | Date |
 | - | - | - |
-| 2.1.0   | Added support for cloud by using base64 pfx string | 06/09/2023  |
-| 2.0.1   | release of v2 | 13/07/2023  |
 | 1.1.0   | Performance updates and added support for custom fields | 05/05/2022  |
 | 1.0.0   | Initial release | 28/02/2022  |
 
@@ -79,13 +82,6 @@ APD will register an application that's allowed to access the specified API's. _
 
 ### X.509 certificate / Private key
 The private key (*.pfx) belonging to the X.590 certificate must be used in order obtain an accesstoken.
-
-There are two options available to import the *.pfx:
-1. Option 1 called "Certificatepath" takes the path to the *.pfx on the machine on which the agent is configured.
-2. Option 2 called "Application PFX Certificate" takes a base64 string of the *.pfx file, which powershell converts to a certificate object. This eliminates the need for a local on-premises agent.
-  </br>Execute the following code to get the base64 of your *.pfx file in your clipboard:
-  ```[System.Convert]::ToBase64String((get-content "C:\*.pfx" -Encoding Byte)) | Set-Clipboard```
-  > To use option 2, leave option 1 empty.
 
 ### AccessToken
 In order to retrieve data from the ADP Workforce API's, an AccessToken has to be obtained. The AccessToken is used for all consecutive calls to ADP Workforce. To obtain an AccessToken, we will need the ___ClientID___, ___ClientSecret___, ___The path to your pfx certificate___ and the ___password for the pfx certificate___.

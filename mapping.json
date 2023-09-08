@@ -22,8 +22,7 @@
             "value": "associateOID",
             "validation": {
                 "required": false
-            },
-            "convertToString": true
+            }
         },
         {
             "name": "Details.BirthDate",
@@ -141,18 +140,18 @@
         },
         {
             "name": "Department.DisplayName",
-            "mode": "complex",
-            "value": "function getDepartmentDisplayName() {\r\n    let departmentDisplayName = \"\";\r\n\r\n    if (typeof sourceContract.organizationalUnit != 'undefined' && sourceContract.organizationalUnit) {\r\n        if (typeof sourceContract.organizationalUnit.departmentCode != 'undefined' && sourceContract.organizationalUnit.departmentCode) {\r\n            if (typeof sourceContract.organizationalUnit.departmentCode.longName != 'undefined' && sourceContract.organizationalUnit.departmentCode.longName) {\r\n                departmentDisplayName = sourceContract.organizationalUnit.departmentCode.longName;\r\n            }\r\n        }\r\n    }\r\n\r\n    return departmentDisplayName;\r\n}\r\ngetDepartmentDisplayName()",
+            "mode": "field",
+            "value": "organizationalUnit.departmentCode.longName",
             "validation": {
                 "required": false
             }
         },
         {
             "name": "Department.ExternalId",
-            "mode": "complex",
-            "value": "function getDepartmentExternalId() {\r\n    let departmentExternalId = \"\";\r\n\r\n    if (typeof sourceContract.organizationalUnit != 'undefined' && sourceContract.organizationalUnit) {\r\n        if (typeof sourceContract.organizationalUnit.departmentCode != 'undefined' && sourceContract.organizationalUnit.departmentCode) {\r\n            if (typeof sourceContract.organizationalUnit.departmentCode.codeValue != 'undefined' && sourceContract.organizationalUnit.departmentCode.codeValue) {\r\n                departmentExternalId = sourceContract.organizationalUnit.departmentCode.codeValue;\r\n            }\r\n        }\r\n    }\r\n\r\n    return departmentExternalId;\r\n}\r\ngetDepartmentExternalId()",
+            "mode": "field",
+            "value": "organizationalUnit.departmentCode.codeValue",
             "validation": {
-                "required": true
+                "required": false
             }
         },
         {
@@ -165,8 +164,8 @@
         },
         {
             "name": "Details.HoursPerWeek",
-            "mode": "complex",
-            "value": "function getHoursPerWeek(){\r\n    let hoursPerWeek = \"\";\r\n\r\n    if (typeof sourceContract.customFields != 'undefined' && sourceContract.customFields) {\r\n        if (typeof sourceContract.customFields.contractHours != 'undefined' && sourceContract.customFields.contractHours) {\r\n            hoursPerWeek = sourceContract.customFields.contractHours;\r\n        }\r\n    }\r\n\r\n    return hoursPerWeek;\r\n}\r\ngetHoursPerWeek()",
+            "mode": "field",
+            "value": "customFields.contractHours",
             "validation": {
                 "required": false
             }
@@ -204,6 +203,14 @@
             }
         },
         {
+            "name": "Manager.DisplayName",
+            "mode": "complex",
+            "value": "function getManagerDisplayName(){\r\n    let managerDisplayName = \"\";\r\n\r\n    if (typeof sourceContract.manager != 'undefined' && sourceContract.manager) {\r\n        if (typeof sourceContract.manager.reportsToWorkerName.formattedName != 'undefined' && sourceContract.manager.reportsToWorkerName.formattedName) {\r\n            managerDisplayName = sourceContract.manager.reportsToWorkerName.formattedName;\r\n        }\r\n    }\r\n\r\n    return managerDisplayName;\r\n}\r\ngetManagerDisplayName()",
+            "validation": {
+                "required": false
+            }
+        },
+        {
             "name": "Manager.ExternalId",
             "mode": "complex",
             "value": "function getManagerExternalId(){\r\n    let managerExternalId = \"\";\r\n\r\n    if (typeof sourceContract.manager != 'undefined' && sourceContract.manager) {\r\n        if (typeof sourceContract.manager.workerID.idValue != 'undefined' && sourceContract.manager.workerID.idValue) {\r\n            managerExternalId = sourceContract.manager.workerID.idValue;\r\n        }\r\n    }\r\n\r\n    return managerExternalId;\r\n}\r\ngetManagerExternalId()",
@@ -221,24 +228,24 @@
         },
         {
             "name": "Title.Code",
-            "mode": "complex",
-            "value": "function getTitleCode() {\r\n    let titleCode = \"\";\r\n\r\n    if (typeof sourceContract.jobCode != 'undefined' && sourceContract.jobCode) {\r\n        if (typeof sourceContract.jobCode.codeValue != 'undefined' && sourceContract.jobCode.codeValue) {\r\n            titleCode = sourceContract.jobCode.codeValue;\r\n        }\r\n    }\r\n\r\n    return titleCode;\r\n}\r\ngetTitleCode()",
+            "mode": "field",
+            "value": "jobCode.codeValue",
             "validation": {
                 "required": false
             }
         },
         {
             "name": "Title.ExternalId",
-            "mode": "complex",
-            "value": "function getTitleCode() {\r\n    let titleCode = \"\";\r\n\r\n    if (typeof sourceContract.jobCode != 'undefined' && sourceContract.jobCode) {\r\n        if (typeof sourceContract.jobCode.codeValue != 'undefined' && sourceContract.jobCode.codeValue) {\r\n            titleCode = sourceContract.jobCode.codeValue;\r\n        }\r\n    }\r\n\r\n    return titleCode;\r\n}\r\ngetTitleCode()",
+            "mode": "field",
+            "value": "jobCode.codeValue",
             "validation": {
-                "required": true
+                "required": false
             }
         },
         {
             "name": "Title.Name",
-            "mode": "complex",
-            "value": "function getTitleName() {\r\n    let titleName = \"\";\r\n\r\n    if (typeof sourceContract.jobCode != 'undefined' && sourceContract.jobCode) {\r\n        if (typeof sourceContract.jobCode.longName != 'undefined' && sourceContract.jobCode.longName) {\r\n            titleName = sourceContract.jobCode.longName;\r\n        }\r\n    }\r\n\r\n    return titleName;\r\n}\r\ngetTitleName()",
+            "mode": "field",
+            "value": "jobCode.longName",
             "validation": {
                 "required": false
             }

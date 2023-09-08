@@ -21,7 +21,6 @@ $baseUrl = $($c.BaseUrl)
 $clientId = $($c.ClientID)
 $clientSecret = $($c.ClientSecret)
 $certificatePath = $($c.CertificatePath)
-$certificateBase64 = $c.CertificateBase64
 $certificatePassword = $($c.CertificatePassword)
 $proxyServer = $($c.ProxyServer)
 
@@ -300,19 +299,7 @@ Returns the raw JSON data containing all workers from ADP Workforce
 
 # Create Access Token
 try {
-    if (-not[string]::IsNullOrEmpty($certificateBase64)) {
-        # Use for cloud PowerShell flow
-        $RAWCertificate = [system.convert]::FromBase64String($certificateBase64)
-        $Certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($RAWCertificate, $certificatePassword)
-    }
-    elseif (-not [string]::IsNullOrEmpty($certificatePathertificatePath)) {
-        # Use for local machine with certificate file
-        $Certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($certificatePath, $certificatePassword)
-    }
-    else {
-        Throw "No certificate configured"
-    }
-
+    $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($certificatePath, $certificatePassword)
     $accessToken = Get-ADPAccessToken -ClientID $clientId -ClientSecret $clientSecret -Certificate $certificate
 }
 catch {
@@ -369,14 +356,17 @@ try {
     # Sort on ExternalId (to make sure the order is always the same)
     $departments = $departments | Sort-Object -Property { $_.departmentCode.codeValue }
 
-    $departments | Add-Member -MemberType NoteProperty -Name "customFields" -Value ([PSCustomObject]@{}) -Force
+    $departments | Add-Member -MemberType NoteProperty -Name "customFields" -Value $null -Force
     $departments | ForEach-Object {
-        if (($_.auxilliaryFields | Measure-Object).Count -ge 1) {
+        if ($null -ne $_.auxilliaryFields) {
             # Transform auxilliaryFields on departments
-            foreach ($attribute in $_.auxilliaryFields) {
-                # Add a property for each field in object
-                $_.customFields | Add-Member -MemberType NoteProperty -Name "$($attribute.nameCode.codeValue)" -Value "$($attribute.stringValue)" -Force
-            }
+            $properties = @(
+                foreach ($attribute in $_.auxilliaryFields) {
+                    @{ Name = "$($attribute.nameCode.codeValue)"; Expression = { "$($attribute.stringValue)" }.GetNewClosure() }
+                }
+            )
+            $departmentAuxilliaryFields = $_ | Select-Object -Property $properties
+            $_.customFields = $departmentAuxilliaryFields
 
             # Remove unneccesary fields from  object (to avoid unneccesary large objects and confusion when mapping)
             # Remove auxilliaryFields ,since the data is transformed into seperate object
@@ -397,7 +387,7 @@ catch {
     throw "Could not query Departments. Error Message: $($errorMessage.AuditErrorMessage)"
 }
 
-# $persons = $persons | Where-Object { $_.workerID.idValue -eq "000224" }
+# $persons = $persons | Where-Object {$_.workerID.idValue -eq "001346"}
 try {
     Write-Verbose 'Enhancing and exporting person objects to HelloID'
 
@@ -413,31 +403,31 @@ try {
     $persons | Add-Member -MemberType NoteProperty -Name "BusinessEmail" -Value $null -Force
     $persons | Add-Member -MemberType NoteProperty -Name "BusinessLandLine" -Value $null -Force
     $persons | Add-Member -MemberType NoteProperty -Name "BusinessMobile" -Value $null -Force
-    $persons | Add-Member -MemberType NoteProperty -Name "customFields" -Value ([PSCustomObject]@{}) -Force
+    $persons | Add-Member -MemberType NoteProperty -Name "customFields" -Value $null -Force
+
+    # Enhance person workAssignments with additional properties
+    $persons.workAssignments | Add-Member -MemberType NoteProperty -Name "customFields" -Value $null -Force
 
     $persons | ForEach-Object {
-        # Create person object to log on which person the error occurs
-        $personInProcess = $_
-
         # Set required fields for HelloID
         $_.ExternalId = $_.workerID.idValue
 
         # Include ExternalId in DisplayName of HelloID Raw Data
         $_.DisplayName = $_.person.legalName.formattedName + " ($($_.ExternalId))"
 
-        if (($_.businessCommunication | Measure-Object).Count -ge 1) {
+        if ($null -ne $_.businessCommunication) {
             # The emails array (if not empty) always contains 1 item
-            if (($_.businessCommunication.emails | Measure-Object).Count -ge 1) {
+            if ($null -ne $_.businessCommunication.emails) {
                 $_.BusinessEmail = $_.businessCommunication.emails[0].emailUri
             }
 
             # The landlines array (if not empty) always contains 1 item
-            if (($_.businessCommunication.landLines | Measure-Object).Count -ge 1) {
+            if ($null -ne $_.businessCommunication.landLines) {
                 $_.BusinessLandLine = $_.businessCommunication.landLines[0].formattedNumber
             }
 
             # The mobiles array (if not empty) always contains 1 item
-            if (($worker.businessCommunication.mobiles | Measure-Object).Count -ge 1) {
+            if ($null -ne $worker.businessCommunication.mobiles) {
                 $_.BusinessMobile = $_.businessCommunication.mobiles[0].formattedNumber
             }
 
@@ -447,13 +437,14 @@ try {
         }
 
         # Transform CustomFields on person
-        if (($_.customFieldGroup | Measure-Object).Count -ge 1) {
-            if (($_.customFieldGroup.stringFields | Measure-Object).Count -ge 1) {
+        if ($null -ne $_.customFieldGroup) {
+            $properties = @(
                 foreach ($attribute in $_.customFieldGroup.stringFields) {
-                    # Add a property for each field in object
-                    $_.customFields | Add-Member -MemberType NoteProperty -Name "$($attribute.nameCode.codeValue)" -Value "$($attribute.stringValue)" -Force
+                    @{ Name = "$($attribute.nameCode.codeValue)"; Expression = { "$($attribute.stringValue)" }.GetNewClosure() }
                 }
-            }
+            )
+            $personCustomFields = $_.customFieldGroup | Select-Object -Property $properties
+            $_.customFields = $personCustomFields
 
             # Remove unneccesary fields from  object (to avoid unneccesary large objects)
             # Remove customFieldGroup, since the data is transformed into customFields property
@@ -463,21 +454,21 @@ try {
         $contractsList = [System.Collections.ArrayList]::new()
 
         # Enhance assignments for person
-        if (($_.workAssignments | Measure-Object).Count -ge 1) {
+        if ($null -ne $_.workAssignments) {
             foreach ($assignment in $_.workAssignments) {
                 # Set required fields for HelloID
                 $assignmentExternalId = "$($_.workerID.idValue)" + "_$($assignment.itemID)"
                 $assignment | Add-Member -MemberType NoteProperty -Name "externalId" -Value $assignmentExternalId -Force
 
                 # Transform CustomFields on assigment
-                $assignment | Add-Member -MemberType NoteProperty -Name "customFields" -Value ([PSCustomObject]@{}) -Force
-                if (($assignment.customFieldGroup | Measure-Object).Count -ge 1) {
-                    if (($assignment.customFieldGroup.stringFields | Measure-Object).Count -ge 1) {
+                if ($null -ne $assignment.customFieldGroup) {
+                    $properties = @(
                         foreach ($attribute in $assignment.customFieldGroup.stringFields) {
-                            # Add a property for each field in object
-                            $_.customFields | Add-Member -MemberType NoteProperty -Name "$($attribute.nameCode.codeValue)" -Value "$($attribute.stringValue)" -Force
+                            @{ Name = "$($attribute.nameCode.codeValue)"; Expression = { "$($attribute.stringValue)" }.GetNewClosure() }
                         }
-                    }
+                    )
+                    $assignmentCustomFields = $assignment.customFieldGroup | Select-Object -Property $properties
+                    $assignment.customFields = $assignmentCustomFields
 
                     # Remove unneccesary fields from  object (to avoid unneccesary large objects)
                     # Remove customFieldGroup, since the data is transformed into customFields property
@@ -486,29 +477,27 @@ try {
 
                 # Assignments may contain multiple managers (per assignment). There's no way to specify which manager is primary
                 # We always select the first one in the array
-                if (($assignment.reportsTo | Measure-Object).Count -ge 1) {
+                if ($null -ne $assignment.reportsTo) {
                     $manager = ($assignment.reportsTo | Sort-Object -Descending)[0]
                     $assignment | Add-Member -MemberType NoteProperty -Name "manager" -Value $manager -Force
                 }
 
-                if (($assignment.homeOrganizationalUnits | Measure-Object).Count -ge 1) {
+                if ($null -ne $assignment.homeOrganizationalUnits) {
                     # Assignments may contain multiple organizationalUnits (per assignment). There's no way to specify which department is primary
                     # We always select the last one in the array
                     $organizationalUnit = ($assignment.homeOrganizationalUnits | Sort-Object -Descending)[-1].nameCode
 
                     # Enhance assignments as department for extra information, such as: company
-                    if (($organizationalUnit.codeValue | Measure-Object).Count -ge 1) {
+                    if ($null -ne $organizationalUnit.codeValue) {
                         $department = $departmentsGrouped["$($organizationalUnit.codeValue)"]
-                        if (($department | Measure-Object).Count -ge 1) {
-                            # It is possible there are multiple department with the same code, we always select the last on in the array
-                            $organizationalUnit = ($department | Sort-Object -Descending)[-1]
-                        }
+                        # It is possible there are multiple department with the same code, we always select the last on in the array
+                        $organizationalUnit = ($department | Sort-Object -Descending)[-1]
                     }
 
                     $assignment | Add-Member -MemberType NoteProperty -Name "organizationalUnit" -Value $organizationalUnit -Force
                 }
 
-                if (($assignment.AssignmentCostCenters | Measure-Object).Count -ge 1) {
+                if ($null -ne $assignment.AssignmentCostCenters) {
                     # Assignments may contain multiple CostCenters (per assignment). There's no way to specify which department is primary
                     # We always select the first one in the array
                     $costCenter = ($assignment.AssignmentCostCenters | Sort-Object -Descending)[0]
@@ -525,7 +514,7 @@ try {
         }
 
         # Add Contracts to person
-        if (($contractsList | Measure-Object).Count -ge 1) {
+        if ($null -ne $contractsList) {
             ## This example can be used by the consultant if you want to filter out persons with an empty array as contract
             ## *** Please consult with the Tools4ever consultant before enabling this code. ***
             # if ($contractsList.Count -eq 0) {
@@ -559,10 +548,6 @@ catch {
     $ex = $PSItem
     $errorMessage = Get-ErrorMessage -ErrorObject $ex
 
-    # If debug logging is toggled, log on which person and line the error occurs
-    if ($c.isDebug -eq $true) {
-        Write-Warning "Error occurred for person [$($personInProcess.ExternalId)]. Error at Line [$($ex.InvocationInfo.ScriptLineNumber)]: $($ex.InvocationInfo.Line). Error: $($errorMessage.VerboseErrorMessage)"
-    }
-    
+    Write-Verbose "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($($errorMessage.VerboseErrorMessage))"  
     throw "Could not enhance and export person objects to HelloID. Error Message: $($errorMessage.AuditErrorMessage)"
 }
