@@ -13,6 +13,7 @@
 ## Version
 | Version | Description | Date |
 | - | - | - |
+| 2.1.1   | Update readme | 08/09/2023  |
 | 2.1.0   | Added support for cloud by using base64 pfx string | 06/09/2023  |
 | 2.0.1   | release of v2 | 13/07/2023  |
 | 1.1.0   | Performance updates and added support for custom fields | 05/05/2022  |
@@ -20,8 +21,8 @@
 
 <!-- Requirements -->
 ## Requirements
-- The 'Execute on-premises' switch on the 'System' tab is toggled.
-- Windows PowerShell 5.1 installed on the server where the 'HelloID agent and provisioning agent' are running.
+- The 'Execute on-premises' switch on the 'System' tab is toggled if using the certificate file
+- Windows PowerShell 5.1 installed on the server where the 'HelloID agent and provisioning agent' are running if using the certificate file
 - The public key *.pfx certificate belonging to the X.509 certificate that's used to activate the required API's.
 - The password for the public key *.pfx certificate.
 
@@ -63,9 +64,9 @@ Note that the _'HelloID-Conn-Prov-Source-ADP-Workforce'_ implementation is based
 ## Getting started
 
 ### Supported PowerShell versions
-The recommended PowerShell version for the  _'HelloID-Conn-Prov-Source-ADP-Workforce'_ is _Windows PowerShell 5.1_. The connector is not tested on older versions of Windows PowerShell.
+The recommended PowerShell version for the  _'HelloID-Conn-Prov-Source-ADP-Workforce'_ is _Windows PowerShell 5.1_. The connector is not tested on older versions of Windows PowerShell. This is only applicable if using the option "Certificatepath" in the configuration.
 
-_PowerShell 7.0.3 Core_ is not yet supported.
+_PowerShell 7.0.3 Core_ is supported when using the option "Base64 string of certificate".
 
 ### X.509 certificate / public key
 
@@ -82,7 +83,7 @@ The private key (*.pfx) belonging to the X.590 certificate must be used in order
 
 There are two options available to import the *.pfx:
 1. Option 1 called "Certificatepath" takes the path to the *.pfx on the machine on which the agent is configured.
-2. Option 2 called "Application PFX Certificate" takes a base64 string of the *.pfx file, which powershell converts to a certificate object. This eliminates the need for a local on-premises agent.
+2. Option 2 called "Base64 string of certificate" takes a base64 string of the *.pfx file, which powershell converts to a certificate object. This eliminates the need for a local on-premises agent.
   </br>Execute the following code to get the base64 of your *.pfx file in your clipboard:
   ```[System.Convert]::ToBase64String((get-content "C:\*.pfx" -Encoding Byte)) | Set-Clipboard```
   > To use option 2, leave option 1 empty.
