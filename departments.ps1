@@ -1,7 +1,7 @@
 #####################################################
 # HelloID-Conn-Prov-Source-ADP-Workforce-Departments
 #
-# Version: 2.0.1
+# Version: 2.1.0
 #####################################################
 
 # Set TLS to accept TLS, TLS 1.1 and TLS 1.2
@@ -21,6 +21,7 @@ $baseUrl = $($c.BaseUrl)
 $clientId = $($c.ClientID)
 $clientSecret = $($c.ClientSecret)
 $certificatePath = $($c.CertificatePath)
+$certificateBase64 = $c.CertificateBase64
 $certificatePassword = $($c.CertificatePassword)
 $proxyServer = $($c.ProxyServer)
 
@@ -138,7 +139,7 @@ Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_S
 
     try {
         $splatRestMethodParameters = @{
-            Uri         = 'https://accounts.eu.adp.com/auth/oauth/v2/token'
+            Uri         = "$BaseUrl/auth/oauth/v2/token"
             Method      = 'POST'
             Headers     = $headers
             Body        = $body
@@ -297,10 +298,20 @@ Returns the raw JSON data containing all workers from ADP Workforce
 }
 #endregion functions
 
-
 # Create Access Token
 try {
-    $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($certificatePath, $certificatePassword)
+    if (-not[string]::IsNullOrEmpty($certificateBase64)) {
+        # Use for cloud PowerShell flow
+        $RAWCertificate = [system.convert]::FromBase64String($certificateBase64)
+        $Certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($RAWCertificate, $certificatePassword)
+    }
+    elseif (-not [string]::IsNullOrEmpty($certificatePathertificatePath)) {
+        # Use for local machine with certificate file
+        $Certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($certificatePath, $certificatePassword)
+    }
+    else {
+        Throw "No certificate configured"
+    }
     $accessToken = Get-ADPAccessToken -ClientID $clientId -ClientSecret $clientSecret -Certificate $certificate
 }
 catch {
@@ -329,17 +340,14 @@ try {
     # Sort on ExternalId (to make sure the order is always the same)
     $departments = $departments | Sort-Object -Property { $_.departmentCode.codeValue }
 
-    $departments | Add-Member -MemberType NoteProperty -Name "customFields" -Value $null -Force
+    $departments | Add-Member -MemberType NoteProperty -Name "customFields" -Value ([PSCustomObject]@{}) -Force
     $departments | ForEach-Object {
-        if ($null -ne $_.auxilliaryFields) {
+        if (($_.auxilliaryFields | Measure-Object).Count -ge 1) {
             # Transform auxilliaryFields on departments
-            $properties = @(
-                foreach ($attribute in $_.auxilliaryFields) {
-                    @{ Name = "$($attribute.nameCode.codeValue)"; Expression = { "$($attribute.stringValue)" }.GetNewClosure() }
-                }
-            )
-            $departmentAuxilliaryFields = $_ | Select-Object -Property $properties
-            $_.customFields = $departmentAuxilliaryFields
+            foreach ($attribute in $_.auxilliaryFields) {
+                # Add a property for each field in object
+                $_.customFields | Add-Member -MemberType NoteProperty -Name "$($attribute.nameCode.codeValue)" -Value "$($attribute.stringValue)" -Force
+            }
 
             # Remove unneccesary fields from  object (to avoid unneccesary large objects and confusion when mapping)
             # Remove auxilliaryFields ,since the data is transformed into seperate object
@@ -357,7 +365,7 @@ catch {
     throw "Could not query Departments. Error Message: $($errorMessage.AuditErrorMessage)"
 }
 
-try{
+try {
     Write-Verbose 'Enhancing and exporting department objects to HelloID'
 
     # Set counter to keep track of actual exported person objects
@@ -371,6 +379,9 @@ try{
     $departments | Add-Member -MemberType NoteProperty -Name "ParentExternalId" -Value $null -Force
     
     $departments | ForEach-Object {
+        # Create department object to log on which department the error occurs
+        $departmentInProcess = $_
+
         # Set required fields for HelloID
         $_.ExternalId = $_.departmentCode.codeValue
         $_.DisplayName = $_.departmentCode.longName
@@ -394,6 +405,10 @@ catch {
     $ex = $PSItem
     $errorMessage = Get-ErrorMessage -ErrorObject $ex
 
-    Write-Verbose "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($($errorMessage.VerboseErrorMessage))"  
+    # If debug logging is toggled, log on which person and line the error occurs
+    if ($c.isDebug -eq $true) {
+        Write-Warning "Error occurred for person [$($personInProcess.ExternalId)]. Error at Line [$($ex.InvocationInfo.ScriptLineNumber)]: $($ex.InvocationInfo.Line). Error: $($errorMessage.VerboseErrorMessage)"
+    }
+    
     throw "Could not enhance and export department objects to HelloID. Error Message: $($errorMessage.AuditErrorMessage)"
 }
