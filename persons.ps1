@@ -257,8 +257,7 @@ Returns the raw JSON data containing all workers from ADP Workforce
                 }
 
                 $datasetJson = Invoke-WebRequest @splatRestMethodParameters -verbose:$false
-                $datasetCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(28591).GetBytes($datasetJson.content))
-                $dataset = $datasetCorrected | ConvertFrom-Json
+                $dataset = $datasetJson.content | ConvertFrom-Json
 
                 $result = $dataset.$contentField
                 if (-not [string]::IsNullOrEmpty($result)) {
@@ -278,8 +277,7 @@ Returns the raw JSON data containing all workers from ADP Workforce
             }
         
             $datasetJson = Invoke-WebRequest @splatRestMethodParameters -verbose:$false
-            $datasetCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(28591).GetBytes($datasetJson.content))
-            $dataset = $datasetCorrected | ConvertFrom-Json
+            $dataset = $datasetJson.content | ConvertFrom-Json
 
             $result = $dataset.$contentField
             if (-not [string]::IsNullOrEmpty($result)) {
