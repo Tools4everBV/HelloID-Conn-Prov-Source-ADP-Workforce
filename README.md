@@ -1,5 +1,9 @@
 # HelloID-Conn-Prov-Source-ADP-Workforce
 
+| :warning: Warning |
+|:---------------------------|
+| The latest version of this connector requires **no longer contains Custom.AssociateOID in the mapping**. As this is a required field for most configuration, please add and mapp this field manually.       |
+
 | :information_source: Information |
 |:---------------------------|
 | This repository contains the connector and configuration code only. The implementer is responsible to acquire the connection details such as username, password, certificate, etc. You might even need to sign a contract or agreement with the supplier before implementing this connector. Please contact the client's application manager to coordinate the connector requirements.       |
