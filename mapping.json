@@ -17,15 +17,6 @@
             }
         },
         {
-            "name": "Custom.AssociateOID",
-            "mode": "field",
-            "value": "associateOID",
-            "validation": {
-                "required": false
-            },
-            "convertToString": true
-        },
-        {
             "name": "Details.BirthDate",
             "mode": "field",
             "value": "person.birthDate",
