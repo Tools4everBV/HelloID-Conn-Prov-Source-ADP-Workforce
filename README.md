@@ -92,6 +92,7 @@ There are two options available to import the *.pfx:
   </br>Execute the following code to get the base64 of your *.pfx file in your clipboard:
   ```[System.Convert]::ToBase64String((get-content "C:\*.pfx" -Encoding Byte)) | Set-Clipboard```
   > To use option 2: leave option 1 empty.
+  
     </br>Edit the person and department script:
     </br>Replace line 281 and 282 from the person script and 260 and 261 from the department script with:
 
