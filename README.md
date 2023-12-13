@@ -93,7 +93,8 @@ There are two options available to import the *.pfx:
   ```[System.Convert]::ToBase64String((get-content "C:\*.pfx" -Encoding Byte)) | Set-Clipboard```
   > To use option 2: leave option 1 empty.
   
-  Replace line 281 and 282 from the person script and 260 and 261 from the department script with:
+    Edit the person and department script:
+    Replace line 281 and 282 from the person script and 260 and 261 from the department script with:
 
   ```powershell
     $datasetJson = Invoke-WebRequest @splatRestMethodParamete -verbose:$false
