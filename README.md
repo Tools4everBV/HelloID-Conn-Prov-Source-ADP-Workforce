@@ -91,16 +91,16 @@ There are two options available to import the *.pfx:
 2. Option 2 called "Base64 string of certificate" takes a base64 string of the *.pfx file, which powershell converts to a certificate object. This eliminates the need for a local on-premises agent.</br>
   </br>Execute the following code to get the base64 of your *.pfx file in your clipboard:
   ```[System.Convert]::ToBase64String((get-content "C:\*.pfx" -Encoding Byte)) | Set-Clipboard```
-  > To use option 2: leave option 1 empty.
+  </br>Replace line 281 and 282 from the person script and 260 and 261 from the department script with:
 
-  
-    </br>Edit the person and department script:
-    </br>Replace line 281 and 282 from the person script and 260 and 261 from the department script with:
-
-  ```powershell
+```powershell
     $datasetJson = Invoke-WebRequest @splatRestMethodParamete -verbose:$false
     $dataset = $datasetJson.content | ConvertFrom-Json
 ```
+  > To use option 2: leave option 1 empty.
+
+
+
 
 ### AccessToken
 In order to retrieve data from the ADP Workforce API's, an AccessToken has to be obtained. The AccessToken is used for all consecutive calls to ADP Workforce. To obtain an AccessToken, we will need the ___ClientID___, ___ClientSecret___, ___The path to your pfx certificate___ and the ___password for the pfx certificate___.
