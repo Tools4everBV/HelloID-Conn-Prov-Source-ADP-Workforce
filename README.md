@@ -95,7 +95,7 @@ There are two options available to import the *.pfx:
   </br>   2. Replace line 281 and 282 from the person script and 260 and 261 from the department script with:
 
 ```powershell
-    $datasetJson = Invoke-WebRequest @splatRestMethodParamete -verbose:$false
+    
     $dataset = $datasetJson.content | ConvertFrom-Json
 ```
   > To use option 2: leave option 1 empty.
