@@ -83,22 +83,49 @@ To get access to the ADP Workforce API's, a x.509 certificate is needed. Please 
 
 APD will register an application that's allowed to access the specified API's. _worker-demographics_ and _organizational_departments_. Other API's within the ADP Workforce environment cannot be accessed.
 
-### X.509 certificate / Private key
-The private key (*.pfx) belonging to the X.590 certificate must be used in order obtain an accesstoken.
+Here's an improved version of the README text:
 
-There are two options available to import the *.pfx:
-1. Option 1 called "Certificatepath" takes the path to the *.pfx on the machine on which the agent is configured. This requires the local on-premise agent.
-2. Option 2 called "Base64 string of certificate" takes a base64 string of the *.pfx file, which powershell converts to a certificate object. This eliminates the need for a local on-premises agent.</br>
-  </br> To use option 2, follow the steps below:
-  </br>   1. Execute the following code to get the base64 of your *.pfx file in your clipboard:
-  ```[System.Convert]::ToBase64String((get-content "C:\*.pfx" -Encoding Byte)) | Set-Clipboard```
-  </br>   2. Replace line 281 and 282 from the person script and 260 and 261 from the department script with:
+---
 
-```powershell
-    
+## Importing *.pfx File Options
+
+There are two methods available for importing the *.pfx file:
+
+### Option 1: Certificate Path
+
+This option, labeled as "Certificate Path," requires specifying the path to the *.pfx file on the machine where the agent is configured. This method is suitable for local on-premise agents.
+
+### Option 2: Base64 String of Certificate
+
+Option 2, named "Base64 String of Certificate," involves providing a base64-encoded string of the *.pfx file. PowerShell then converts this string to a certificate object. This approach eliminates the necessity for a local on-premises agent.
+
+#### Steps to Use Option 2:
+
+1. Execute the following code to copy the base64 string of your *.pfx file to your clipboard:
+
+    ```powershell
+    [System.Convert]::ToBase64String((Get-Content "C:\*.pfx" -Encoding Byte)) | Set-Clipboard
+    ```
+
+2. Leave the configuration of "Certificate Path" empty.
+
+3. If deploying on a cloud agent, replace the following code (approximately at line 281 and 282 in the person script and 260 and 261 in the department script):
+
+    ```powershell
+    $datasetCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(28591).GetBytes($datasetJson.content))
+    $dataset = $datasetCorrected | ConvertFrom-Json
+    ```
+
+    With:
+
+    ```powershell
     $dataset = $datasetJson.content | ConvertFrom-Json
-```
-  > To use option 2: leave option 1 empty.
+    ```
+
+---
+
+This updated version clarifies the options, provides clearer instructions for using Option 2, and includes formatting for better readability.
+
 
 
 ### AccessToken
