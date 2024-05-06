@@ -305,7 +305,7 @@ try {
         $RAWCertificate = [system.convert]::FromBase64String($certificateBase64)
         $Certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($RAWCertificate, $certificatePassword)
     }
-    elseif (-not [string]::IsNullOrEmpty($certificatePathertificatePath)) {
+    elseif (-not [string]::IsNullOrEmpty($certificatePath)) {
         # Use for local machine with certificate file
         $Certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($certificatePath, $certificatePassword)
     }
