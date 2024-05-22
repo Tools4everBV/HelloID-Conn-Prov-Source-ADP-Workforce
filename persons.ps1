@@ -461,11 +461,14 @@ try {
     $persons | Add-Member -MemberType NoteProperty -Name "BusinessEmail" -Value $null -Force
     $persons | Add-Member -MemberType NoteProperty -Name "BusinessLandLine" -Value $null -Force
     $persons | Add-Member -MemberType NoteProperty -Name "BusinessMobile" -Value $null -Force
-    $persons | Add-Member -MemberType NoteProperty -Name "customFields" -Value ([PSCustomObject]@{}) -Force
+    
 
     $persons | ForEach-Object {
         # Create person object to log on which person the error occurs
         $personInProcess = $_
+
+        # add empty CustomFields object to person. To be populated with CustomFieldGroup
+        $persons | Add-Member -MemberType NoteProperty -Name "customFields" -Value ([PSCustomObject]@{}) -Force
 
         # Set required fields for HelloID
         $_.ExternalId = $_.workerID.idValue
