@@ -468,7 +468,7 @@ try {
         $personInProcess = $_
 
         # add empty CustomFields object to person. To be populated with CustomFieldGroup
-        $persons | Add-Member -MemberType NoteProperty -Name "customFields" -Value ([PSCustomObject]@{}) -Force
+        $_ | Add-Member -MemberType NoteProperty -Name "customFields" -Value ([PSCustomObject]@{}) -Force
 
         # Set required fields for HelloID
         $_.ExternalId = $_.workerID.idValue
