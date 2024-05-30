@@ -15,15 +15,15 @@
             }
         }, {
             "name": "Details.BirthDate",
-            "mode": "field",
-            "value": "person.birthDate",
+            "mode": "complex",
+            "value": "function getBirthDate (){\r\n    let birthDate = \"\";\r\n    if(typeof source.person.birthDate != 'undefined' && source.person.birthDate ){\r\n        birthDate = source.person.birthDate;\r\n    }\r\n    return birthDate;\r\n}\r\ngetBirthDate();",
             "validation": {
                 "required": false
             }
         }, {
             "name": "Details.Gender",
-            "mode": "field",
-            "value": "person.genderCode.codeValue",
+            "mode": "complex",
+            "value": "function getGender () {\r\n    let gender = '';\r\n    if(typeof source.person.genderCode.codeValue != 'undefined' && source.person.genderCode.codeValue){\r\n        \r\n        switch(source.person.genderCode.codeValue){\r\n            case 'MALE':\r\n                gender = 'M' ;\r\n                break;\r\n            case 'FEMALE':\r\n                gender = 'V';\r\n                break;\r\n            default:\r\n                gender = '';\r\n                break;\r\n        }\r\n    \r\n    }\r\n    return gender;\r\n}\r\ngetGender();\r\n",
             "validation": {
                 "required": false
             }
@@ -37,56 +37,56 @@
         }, {
             "name": "Name.Convention",
             "mode": "complex",
-            "value": "function convertNameConvention()\r\n{\r\n    let convention =\"\";\r\n    switch(source.customFields.naamSamenstelling)\r\n    {\r\n        case \"tiva\":\r\n            convention = \"B\";\r\n        break;\r\n        case \"tiva-wp\":\r\n            convention = \"BP\";\r\n        break;\r\n        case \"tiwp\":\r\n            convention = \"P\";\r\n        break;\r\n        case \"tiwp-va\":\r\n            convention = \"PB\";\r\n        break;\r\n        default:\r\n            convention = \"B\";\r\n        break;\r\n        \r\n    }\r\n\r\n    return convention;\r\n}\r\n\r\nconvertNameConvention()",
+            "value": "function convertNameConvention()\r\n{\r\n    let convention =\"\";\r\n    if(typeof source.customFields.naamSamenstelling != 'undefined' && source.customFields.naamSamenstelling){\r\n        switch(source.customFields.naamSamenstelling)\r\n        {\r\n            case \"tiva\":\r\n                convention = \"B\";\r\n            break;\r\n            case \"tiva-wp\":\r\n                convention = \"BP\";\r\n            break;\r\n            case \"tiwp\":\r\n                convention = \"P\";\r\n            break;\r\n            case \"tiwp-va\":\r\n                convention = \"PB\";\r\n            break;\r\n            default:\r\n                convention = \"B\";\r\n            break;\r\n            \r\n        }\r\n    }\r\n\r\n    return convention;\r\n}\r\n\r\nconvertNameConvention()",
             "validation": {
                 "required": false
             }
         }, {
             "name": "Name.FamilyName",
-            "mode": "field",
-            "value": "person.legalName.familyName1",
+            "mode": "complex",
+            "value": "function getFamilyName (){\r\n    let familyName = \"\";\r\n    if(typeof source.person.legalName != 'undefined' && source.person.legalName ){\r\n        if(typeof source.person.legalName.familyName1 != 'undefined' && source.person.legalName.familyName1){\r\n            familyName = source.person.legalName.familyName1;\r\n        }\r\n    }\r\n    return familyName;\r\n}\r\ngetFamilyName();",
             "validation": {
                 "required": false
             }
         }, {
             "name": "Name.FamilyNamePartner",
-            "mode": "field",
-            "value": "customFields.partnerFamilyName1",
+            "mode": "complex",
+            "value": "function getPartnerName (){\r\n    let familyName = \"\";\r\n    if(typeof source.customFields != 'undefined' && source.customFields){\r\n        if(typeof source.customFields.partnerFamilyName1 != 'undefined' && source.customFields.partnerFamilyName1){\r\n            familyName = source.customFields.partnerFamilyName1;\r\n        }\r\n    }\r\n    return familyName;\r\n}\r\ngetPartnerName();",
             "validation": {
                 "required": false
             }
         }, {
             "name": "Name.FamilyNamePartnerPrefix",
-            "mode": "field",
-            "value": "customFields.partnerFamilyName1Prefix",
+            "mode": "complex",
+            "value": "function getPartnerNamePrefix (){\r\n    let familyNamePrefix = \"\";\r\n    if(typeof source.customFields != 'undefined' && source.customFields){\r\n        if(typeof source.customFields.partnerFamilyName1Prefix != 'undefined' && source.customFields.partnerFamilyName1Prefix){\r\n            familyNamePrefix = source.customFields.partnerFamilyName1Prefix;\r\n        }\r\n    }\r\n    return familyNamePrefix;\r\n}\r\ngetPartnerNamePrefix();",
             "validation": {
                 "required": false
             }
         }, {
             "name": "Name.FamilyNamePrefix",
-            "mode": "field",
-            "value": "person.legalName.familyName1Prefix",
+            "mode": "complex",
+            "value": "function getFamilyNamePrefix (){\r\n    let familyNamePrefix = \"\";\r\n    if(typeof source.person.legalName != 'undefined' && source.person.legalName ){\r\n        if(typeof source.person.legalName.familyName1Prefix != 'undefined' && source.person.legalName.familyName1Prefix){\r\n            familyNamePrefix = source.person.legalName.familyName1Prefix;\r\n        }\r\n    }\r\n    return familyNamePrefix;\r\n}\r\ngetFamilyNamePrefix();",
             "validation": {
                 "required": false
             }
         }, {
             "name": "Name.GivenName",
-            "mode": "field",
-            "value": "person.legalName.givenName",
+            "mode": "complex",
+            "value": "function getGivenName (){\r\n    let givenName = \"\";\r\n    if(typeof source.person.legalName != 'undefined' && source.person.legalName ){\r\n        if(typeof source.person.legalName.givenName != 'undefined' && source.person.legalName.givenName){\r\n            givenName = source.person.legalName.givenName;\r\n        }\r\n    }\r\n    return givenName;\r\n}\r\ngetGivenName();",
             "validation": {
                 "required": false
             }
         }, {
             "name": "Name.Initials",
-            "mode": "field",
-            "value": "person.legalName.initials",
+            "mode": "complex",
+            "value": "function getInitials (){\r\n    let initials = \"\";\r\n    if(typeof source.person.legalName != 'undefined' && source.person.legalName ){\r\n        if(typeof source.person.legalName.initials != 'undefined' && source.person.legalName.initials){\r\n            initials = source.person.legalName.initials;\r\n        }\r\n    }\r\n    return initials;\r\n}\r\ngetInitials();",
             "validation": {
                 "required": false
             }
         }, {
             "name": "Name.NickName",
-            "mode": "field",
-            "value": "person.legalName.nickName",
+            "mode": "complex",
+            "value": "function getNickName (){\r\n    let nickName = \"\";\r\n    if(typeof source.person.legalName != 'undefined' && source.person.legalName ){\r\n        if(typeof source.person.legalName.nickName != 'undefined' && source.person.legalName.nickName){\r\n            nickName = source.person.legalName.nickName;\r\n        }\r\n    }\r\n    return nickName;\r\n}\r\ngetNickName();",
             "validation": {
                 "required": false
             }

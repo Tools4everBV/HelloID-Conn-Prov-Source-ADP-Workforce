@@ -25,9 +25,6 @@ $certificateBase64 = $c.CertificateBase64
 $certificatePassword = $($c.CertificatePassword)
 $proxyServer = $($c.ProxyServer)
 
-#filter parameters
-$daysToFilter = $($c.DaysToFilter)
-$filterDate = ((Get-Date).AddDays(-$daysToFilter)).tostring("yyyyMMdd")
 Write-Information "Start person import: Base URL '$baseUrl', Proxy server '$proxyServer', Client ID '$clientId'"
 
 #region functions
@@ -247,7 +244,7 @@ Returns the raw JSON data containing all workers from ADP Workforce
 
             do {
                 $result = $null
-                $urlOffset = $Url + "?$" + "skip=$skip&$" + "top=$take&$" + "filter=MUT_INK_SOORT ne 31 and MUT_INK_SOORT ne 63 and MUT_INK_SOORT ne 62 and MUT_INK_SOORT ne 53 and /workers/workerDates/terminationDate gt $($filterDate)"
+                $urlOffset = $Url + "?$" + "skip=$skip&$" + "top=$take"
                 $skip += $take
 
                 $splatRestMethodParameters = @{
@@ -265,7 +262,7 @@ Returns the raw JSON data containing all workers from ADP Workforce
                     $dataset = $datasetJson.content | ConvertFrom-Json
                 }
                 elseif (-not [string]::IsNullOrEmpty($certificatePathertificatePath)) {
-                    $datasetCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(28591).GetBytes($datasetJson.content))
+                    $datasetCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::UTF8.GetBytes($datasetJson.content))
                     $dataset = $datasetCorrected | ConvertFrom-Json
                 }
                 else {
@@ -294,7 +291,7 @@ Returns the raw JSON data containing all workers from ADP Workforce
                 $dataset = $datasetJson.content | ConvertFrom-Json
             }
             elseif (-not [string]::IsNullOrEmpty($certificatePathertificatePath)) {
-                $datasetCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(28591).GetBytes($datasetJson.content))
+                $datasetCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::UTF8.GetBytes($datasetJson.content))
                 $dataset = $datasetCorrected | ConvertFrom-Json
             }
             else {
@@ -526,7 +523,7 @@ try {
                     if (($assignment.customFieldGroup.stringFields | Measure-Object).Count -ge 1) {
                         foreach ($attribute in $assignment.customFieldGroup.stringFields) {
                             # Add a property for each field in object
-                            $_.customFields | Add-Member -MemberType NoteProperty -Name "$($attribute.nameCode.codeValue)" -Value "$($attribute.stringValue)" -Force
+                            $assignment.customFields | Add-Member -MemberType NoteProperty -Name "$($attribute.nameCode.codeValue)" -Value "$($attribute.stringValue)" -Force
                         }
                     }
 
