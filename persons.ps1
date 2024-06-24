@@ -1,7 +1,7 @@
 #####################################################
 # HelloID-Conn-Prov-Source-ADP-Workforce
 #
-# Version: 2.0.1
+# Version: 2.2.0
 #####################################################
 
 # Set TLS to accept TLS, TLS 1.1 and TLS 1.2
@@ -148,7 +148,7 @@ Get-ADPAccessToken -Client 'ADP_Provided_ClientID' -ClientSecret 'ADP_Provided_S
         Invoke-RestMethod @splatRestMethodParameters -verbose:$false
     }
     catch {
-        throw $PSItem
+        $PSCmdlet.ThrowTerminatingError($PSItem)
     }
 }
 
@@ -256,10 +256,18 @@ Returns the raw JSON data containing all workers from ADP Workforce
                     Certificate     = $Certificate
                 }
 
-                $datasetJson = Invoke-WebRequest @splatRestMethodParameters -verbose:$false
-                $datasetCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(28591).GetBytes($datasetJson.content))
-                $dataset = $datasetCorrected | ConvertFrom-Json
-
+                $datasetJson = Invoke-WebRequest @splatRestMethodParameters -verbose:$false               
+                
+                if (-not[string]::IsNullOrEmpty($certificateBase64)) {    
+                    $dataset = $datasetJson.content | ConvertFrom-Json
+                }
+                elseif (-not [string]::IsNullOrEmpty($certificatePathertificatePath)) {
+                    $datasetCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::UTF8.GetBytes($datasetJson.content))
+                    $dataset = $datasetCorrected | ConvertFrom-Json
+                }
+                else {
+                    Throw "No certificate configured"
+                }
                 $result = $dataset.$contentField
                 if (-not [string]::IsNullOrEmpty($result)) {
                     $data.value.AddRange($result)
@@ -278,8 +286,17 @@ Returns the raw JSON data containing all workers from ADP Workforce
             }
         
             $datasetJson = Invoke-WebRequest @splatRestMethodParameters -verbose:$false
-            $datasetCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(28591).GetBytes($datasetJson.content))
-            $dataset = $datasetCorrected | ConvertFrom-Json
+
+            if (-not[string]::IsNullOrEmpty($certificateBase64)) {    
+                $dataset = $datasetJson.content | ConvertFrom-Json
+            }
+            elseif (-not [string]::IsNullOrEmpty($certificatePathertificatePath)) {
+                $datasetCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::UTF8.GetBytes($datasetJson.content))
+                $dataset = $datasetCorrected | ConvertFrom-Json
+            }
+            else {
+                Throw "No certificate configured"
+            }
 
             $result = $dataset.$contentField
             if (-not [string]::IsNullOrEmpty($result)) {
@@ -290,10 +307,24 @@ Returns the raw JSON data containing all workers from ADP Workforce
     catch {
         $data.Value = $null
         $ex = $PSItem
-        $errorMessage = Get-ErrorMessage -ErrorObject $ex
-
-        Write-Verbose "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($($errorMessage.VerboseErrorMessage))"  
-        throw "Could not query data from ADP. URI: $($splatRestMethodParameters.Uri). Error Message: $($errorMessage.AuditErrorMessage)"
+        if ( $($ex.Exception.GetType().FullName -eq 'Microsoft.PowerShell.Commands.HttpResponseException') -or $($ex.Exception.GetType().FullName -eq 'System.Net.WebException')) {
+            $errorObject = Resolve-HTTPError -Error $ex
+    
+            $verboseErrorMessage = $errorObject.ErrorMessage
+    
+            $auditErrorMessage = $errorObject.ErrorMessage
+        }
+    
+        # If error message empty, fall back on $ex.Exception.Message
+        if ([String]::IsNullOrEmpty($verboseErrorMessage)) {
+            $verboseErrorMessage = $ex.Exception.Message
+        }
+        if ([String]::IsNullOrEmpty($auditErrorMessage)) {
+            $auditErrorMessage = $ex.Exception.Message
+        }
+    
+        Write-Verbose "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($verboseErrorMessage)"        
+        throw "Could not query data from ADP. URI: $Url. Error: $auditErrorMessage"
     }
 }
 #endregion functions
@@ -345,10 +376,24 @@ try {
 }
 catch {
     $ex = $PSItem
-    $errorMessage = Get-ErrorMessage -ErrorObject $ex
+    if ( $($ex.Exception.GetType().FullName -eq 'Microsoft.PowerShell.Commands.HttpResponseException') -or $($ex.Exception.GetType().FullName -eq 'System.Net.WebException')) {
+        $errorObject = Resolve-HTTPError -Error $ex
 
-    Write-Verbose "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($($errorMessage.VerboseErrorMessage))"  
-    throw "Could not query Persons. Error Message: $($errorMessage.AuditErrorMessage)"
+        $verboseErrorMessage = $errorObject.ErrorMessage
+
+        $auditErrorMessage = $errorObject.ErrorMessage
+    }
+
+    # If error message empty, fall back on $ex.Exception.Message
+    if ([String]::IsNullOrEmpty($verboseErrorMessage)) {
+        $verboseErrorMessage = $ex.Exception.Message
+    }
+    if ([String]::IsNullOrEmpty($auditErrorMessage)) {
+        $auditErrorMessage = $ex.Exception.Message
+    }
+
+    Write-Verbose "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($verboseErrorMessage)"        
+    throw "Could not query Persons. Error: $auditErrorMessage"
 }
 
 # Query Departments
@@ -397,7 +442,7 @@ catch {
     throw "Could not query Departments. Error Message: $($errorMessage.AuditErrorMessage)"
 }
 
-# $persons = $persons | Where-Object { $_.workerID.idValue -eq "000224" }
+
 try {
     Write-Verbose 'Enhancing and exporting person objects to HelloID'
 
@@ -413,11 +458,14 @@ try {
     $persons | Add-Member -MemberType NoteProperty -Name "BusinessEmail" -Value $null -Force
     $persons | Add-Member -MemberType NoteProperty -Name "BusinessLandLine" -Value $null -Force
     $persons | Add-Member -MemberType NoteProperty -Name "BusinessMobile" -Value $null -Force
-    $persons | Add-Member -MemberType NoteProperty -Name "customFields" -Value ([PSCustomObject]@{}) -Force
+    
 
     $persons | ForEach-Object {
         # Create person object to log on which person the error occurs
         $personInProcess = $_
+
+        # add empty CustomFields object to person. To be populated with CustomFieldGroup
+        $_ | Add-Member -MemberType NoteProperty -Name "customFields" -Value ([PSCustomObject]@{}) -Force
 
         # Set required fields for HelloID
         $_.ExternalId = $_.workerID.idValue
@@ -475,7 +523,7 @@ try {
                     if (($assignment.customFieldGroup.stringFields | Measure-Object).Count -ge 1) {
                         foreach ($attribute in $assignment.customFieldGroup.stringFields) {
                             # Add a property for each field in object
-                            $_.customFields | Add-Member -MemberType NoteProperty -Name "$($attribute.nameCode.codeValue)" -Value "$($attribute.stringValue)" -Force
+                            $assignment.customFields | Add-Member -MemberType NoteProperty -Name "$($attribute.nameCode.codeValue)" -Value "$($attribute.stringValue)" -Force
                         }
                     }
 
@@ -557,12 +605,26 @@ try {
 }
 catch {
     $ex = $PSItem
-    $errorMessage = Get-ErrorMessage -ErrorObject $ex
+    if ( $($ex.Exception.GetType().FullName -eq 'Microsoft.PowerShell.Commands.HttpResponseException') -or $($ex.Exception.GetType().FullName -eq 'System.Net.WebException')) {
+        $errorObject = Resolve-HTTPError -Error $ex
+
+        $verboseErrorMessage = $errorObject.ErrorMessage
+
+        $auditErrorMessage = $errorObject.ErrorMessage
+    }
+
+    # If error message empty, fall back on $ex.Exception.Message
+    if ([String]::IsNullOrEmpty($verboseErrorMessage)) {
+        $verboseErrorMessage = $ex.Exception.Message
+    }
+    if ([String]::IsNullOrEmpty($auditErrorMessage)) {
+        $auditErrorMessage = $ex.Exception.Message
+    }
 
     # If debug logging is toggled, log on which person and line the error occurs
     if ($c.isDebug -eq $true) {
-        Write-Warning "Error occurred for person [$($personInProcess.ExternalId)]. Error at Line [$($ex.InvocationInfo.ScriptLineNumber)]: $($ex.InvocationInfo.Line). Error: $($errorMessage.VerboseErrorMessage)"
+        Write-Warning "Error occurred for person [$($personInProcess.ExternalId)]. Error at Line [$($ex.InvocationInfo.ScriptLineNumber)]: $($ex.InvocationInfo.Line). Error: $(VerboseErrorMessage)"
     }
     
-    throw "Could not enhance and export person objects to HelloID. Error Message: $($errorMessage.AuditErrorMessage)"
+    throw "Could not enhance and export person objects to HelloID. Error Message: $($auditErrorMessage)"
 }

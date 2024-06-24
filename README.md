@@ -17,7 +17,8 @@
 ## Version
 | Version | Description | Date |
 | - | - | - |
-| 2.1.2   | Update readme, added opton for cloud agent | 13/12/2023  |
+| 2.1.3   | Update readme, added filter for past contract, mod endDate mapping | 14/05/2024  |
+| 2.1.2   | Update readme, added option for cloud agent | 13/12/2023  |
 | 2.1.1   | Update readme | 08/09/2023  |
 | 2.1.0   | Added support for cloud by using base64 pfx string | 06/09/2023  |
 | 2.0.1   | release of v2 | 13/07/2023  |
@@ -109,19 +110,6 @@ Option 2, named "Base64 String of Certificate," involves providing a base64-enco
 
 2. Leave the configuration of "Certificate Path" empty.
 
-3. If deploying on a cloud agent, replace the following code (approximately at line 281 and 282 in the person script and 260 and 261 in the department script):
-
-    ```powershell
-    $datasetCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(28591).GetBytes($datasetJson.content))
-    $dataset = $datasetCorrected | ConvertFrom-Json
-    ```
-
-    With:
-
-    ```powershell
-    $dataset = $datasetJson.content | ConvertFrom-Json
-    ```
-
 ---
 
 This updated version clarifies the options, provides clearer instructions for using Option 2, and includes formatting for better readability.
@@ -146,6 +134,8 @@ Custom fields can be selected in both the _person_ and _contract_ mapping.
 
 ### Mappings
 A basic person and contract mapping is provided. Make sure to further customize these accordingly.
+
+**Note:**  Fields in the JSON output are no longer displayed if they do not contain a value. Make sure to validated on objects when using complex mapping
 
 ### Caveats
 __[worker.businessCommunication]__
