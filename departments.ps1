@@ -244,7 +244,7 @@ Returns the raw JSON data containing all workers from ADP Workforce
 
             do {
                 $result = $null
-                $urlOffset = $Url + "?$" + "skip=$skip&$" + "top=$take&$" + "filter=MUT_INK_SOORT ne 31 and MUT_INK_SOORT ne 63 and MUT_INK_SOORT ne 62 and MUT_INK_SOORT ne 53 and /workers/workerDates/terminationDate gt $($filterDate)"
+                $urlOffset = $Url + "?$" + "skip=$skip&$" + "top=$take"
                 $skip += $take
 
                 $splatRestMethodParameters = @{
