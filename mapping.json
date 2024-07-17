@@ -1,232 +1,203 @@
 {
-    "personMappings": [
-        {
+    "personMappings": [{
             "name": "Contact.Business.Phone.Mobile",
             "mode": "field",
             "value": "BusinessMobile",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "Contact.Personal.Phone.Fixed",
             "mode": "field",
             "value": "BusinessLandLine",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "Details.BirthDate",
-            "mode": "field",
-            "value": "person.birthDate",
+            "mode": "complex",
+            "value": "function getBirthDate (){\r\n    let birthDate = \"\";\r\n    if(typeof source.person.birthDate != 'undefined' && source.person.birthDate ){\r\n        birthDate = source.person.birthDate;\r\n    }\r\n    return birthDate;\r\n}\r\ngetBirthDate();",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "Details.Gender",
-            "mode": "field",
-            "value": "person.genderCode.codeValue",
+            "mode": "complex",
+            "value": "function getGender () {\r\n    let gender = '';\r\n    if(typeof source.person.genderCode.codeValue != 'undefined' && source.person.genderCode.codeValue){\r\n        \r\n        switch(source.person.genderCode.codeValue){\r\n            case 'MALE':\r\n                gender = 'M' ;\r\n                break;\r\n            case 'FEMALE':\r\n                gender = 'V';\r\n                break;\r\n            default:\r\n                gender = '';\r\n                break;\r\n        }\r\n    \r\n    }\r\n    return gender;\r\n}\r\ngetGender();\r\n",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "ExternalId",
             "mode": "field",
             "value": "ExternalId",
             "validation": {
                 "required": true
             }
-        },
-        {
+        }, {
             "name": "Name.Convention",
             "mode": "complex",
-            "value": "function convertNameConvention()\r\n{\r\n    let convention =\"\";\r\n    switch(source.customFields.naamSamenstelling)\r\n    {\r\n        case \"tiva\":\r\n            convention = \"B\";\r\n        break;\r\n        case \"tiva-wp\":\r\n            convention = \"BP\";\r\n        break;\r\n        case \"tiwp\":\r\n            convention = \"P\";\r\n        break;\r\n        case \"tiwp-va\":\r\n            convention = \"PB\";\r\n        break;\r\n        default:\r\n            convention = \"B\";\r\n        break;\r\n        \r\n    }\r\n\r\n    return convention;\r\n}\r\n\r\nconvertNameConvention()",
+            "value": "function convertNameConvention()\r\n{\r\n    let convention =\"\";\r\n    if(typeof source.customFields.naamSamenstelling != 'undefined' && source.customFields.naamSamenstelling){\r\n        switch(source.customFields.naamSamenstelling)\r\n        {\r\n            case \"tiva\":\r\n                convention = \"B\";\r\n            break;\r\n            case \"tiva-wp\":\r\n                convention = \"BP\";\r\n            break;\r\n            case \"tiwp\":\r\n                convention = \"P\";\r\n            break;\r\n            case \"tiwp-va\":\r\n                convention = \"PB\";\r\n            break;\r\n            default:\r\n                convention = \"B\";\r\n            break;\r\n            \r\n        }\r\n    }\r\n\r\n    return convention;\r\n}\r\n\r\nconvertNameConvention()",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "Name.FamilyName",
-            "mode": "field",
-            "value": "person.legalName.familyName1",
+            "mode": "complex",
+            "value": "function getFamilyName (){\r\n    let familyName = \"\";\r\n    if(typeof source.person.legalName != 'undefined' && source.person.legalName ){\r\n        if(typeof source.person.legalName.familyName1 != 'undefined' && source.person.legalName.familyName1){\r\n            familyName = source.person.legalName.familyName1;\r\n        }\r\n    }\r\n    return familyName;\r\n}\r\ngetFamilyName();",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "Name.FamilyNamePartner",
-            "mode": "field",
-            "value": "customFields.partnerFamilyName1",
+            "mode": "complex",
+            "value": "function getPartnerName (){\r\n    let familyName = \"\";\r\n    if(typeof source.customFields != 'undefined' && source.customFields){\r\n        if(typeof source.customFields.partnerFamilyName1 != 'undefined' && source.customFields.partnerFamilyName1){\r\n            familyName = source.customFields.partnerFamilyName1;\r\n        }\r\n    }\r\n    return familyName;\r\n}\r\ngetPartnerName();",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "Name.FamilyNamePartnerPrefix",
-            "mode": "field",
-            "value": "customFields.partnerFamilyName1Prefix",
+            "mode": "complex",
+            "value": "function getPartnerNamePrefix (){\r\n    let familyNamePrefix = \"\";\r\n    if(typeof source.customFields != 'undefined' && source.customFields){\r\n        if(typeof source.customFields.partnerFamilyName1Prefix != 'undefined' && source.customFields.partnerFamilyName1Prefix){\r\n            familyNamePrefix = source.customFields.partnerFamilyName1Prefix;\r\n        }\r\n    }\r\n    return familyNamePrefix;\r\n}\r\ngetPartnerNamePrefix();",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "Name.FamilyNamePrefix",
-            "mode": "field",
-            "value": "person.legalName.familyName1Prefix",
+            "mode": "complex",
+            "value": "function getFamilyNamePrefix (){\r\n    let familyNamePrefix = \"\";\r\n    if(typeof source.person.legalName != 'undefined' && source.person.legalName ){\r\n        if(typeof source.person.legalName.familyName1Prefix != 'undefined' && source.person.legalName.familyName1Prefix){\r\n            familyNamePrefix = source.person.legalName.familyName1Prefix;\r\n        }\r\n    }\r\n    return familyNamePrefix;\r\n}\r\ngetFamilyNamePrefix();",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "Name.GivenName",
-            "mode": "field",
-            "value": "person.legalName.givenName",
+            "mode": "complex",
+            "value": "function getGivenName (){\r\n    let givenName = \"\";\r\n    if(typeof source.person.legalName != 'undefined' && source.person.legalName ){\r\n        if(typeof source.person.legalName.givenName != 'undefined' && source.person.legalName.givenName){\r\n            givenName = source.person.legalName.givenName;\r\n        }\r\n    }\r\n    return givenName;\r\n}\r\ngetGivenName();",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "Name.Initials",
-            "mode": "field",
-            "value": "person.legalName.initials",
+            "mode": "complex",
+            "value": "function getInitials (){\r\n    let initials = \"\";\r\n    if(typeof source.person.legalName != 'undefined' && source.person.legalName ){\r\n        if(typeof source.person.legalName.initials != 'undefined' && source.person.legalName.initials){\r\n            initials = source.person.legalName.initials;\r\n        }\r\n    }\r\n    return initials;\r\n}\r\ngetInitials();",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "Name.NickName",
-            "mode": "field",
-            "value": "person.legalName.nickName",
+            "mode": "complex",
+            "value": "function getNickName (){\r\n    let nickName = \"\";\r\n    if(typeof source.person.legalName != 'undefined' && source.person.legalName ){\r\n        if(typeof source.person.legalName.nickName != 'undefined' && source.person.legalName.nickName){\r\n            nickName = source.person.legalName.nickName;\r\n        }\r\n    }\r\n    return nickName;\r\n}\r\ngetNickName();",
             "validation": {
                 "required": false
             }
         }
     ],
-    "contractMappings": [
-        {
+    "contractMappings": [{
             "name": "CostCenter.Code",
             "mode": "complex",
             "value": "function getCostCenterCode(){\r\n    let costCenterCode = \"\";\r\n\r\n    if (typeof sourceContract.customFields != 'undefined' && sourceContract.customFields) {\r\n        if (typeof sourceContract.customFields.costCenter != 'undefined' && sourceContract.customFields.costCenter) {\r\n            costCenterCode = sourceContract.customFields.costCenter;\r\n        }\r\n    }\r\n\r\n    return costCenterCode;\r\n}\r\ngetCostCenterCode()",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "CostCenter.ExternalId",
             "mode": "complex",
             "value": "function getCostCenterCode(){\r\n    let costCenterCode = \"\";\r\n\r\n    if (typeof sourceContract.customFields != 'undefined' && sourceContract.customFields) {\r\n        if (typeof sourceContract.customFields.costCenter != 'undefined' && sourceContract.customFields.costCenter) {\r\n            costCenterCode = sourceContract.customFields.costCenter;\r\n        }\r\n    }\r\n\r\n    return costCenterCode;\r\n}\r\ngetCostCenterCode()",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "CostCenter.Name",
             "mode": "complex",
             "value": "function getCostCenterName(){\r\n    let costCenterName = \"\";\r\n\r\n    if (typeof sourceContract.customFields != 'undefined' && sourceContract.customFields) {\r\n        if (typeof sourceContract.customFields.costCenterName  != 'undefined' && sourceContract.customFields.costCenterName) {\r\n            costCenterName = sourceContract.customFields.costCenterName ;\r\n        }\r\n    }\r\n\r\n    return costCenterName;\r\n}\r\ngetCostCenterName()",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "Department.DisplayName",
             "mode": "complex",
             "value": "function getDepartmentDisplayName() {\r\n    let departmentDisplayName = \"\";\r\n\r\n    if (typeof sourceContract.organizationalUnit != 'undefined' && sourceContract.organizationalUnit) {\r\n        if (typeof sourceContract.organizationalUnit.departmentCode != 'undefined' && sourceContract.organizationalUnit.departmentCode) {\r\n            if (typeof sourceContract.organizationalUnit.departmentCode.longName != 'undefined' && sourceContract.organizationalUnit.departmentCode.longName) {\r\n                departmentDisplayName = sourceContract.organizationalUnit.departmentCode.longName;\r\n            }\r\n        }\r\n    }\r\n\r\n    return departmentDisplayName;\r\n}\r\ngetDepartmentDisplayName()",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "Department.ExternalId",
             "mode": "complex",
             "value": "function getDepartmentExternalId() {\r\n    let departmentExternalId = \"\";\r\n\r\n    if (typeof sourceContract.organizationalUnit != 'undefined' && sourceContract.organizationalUnit) {\r\n        if (typeof sourceContract.organizationalUnit.departmentCode != 'undefined' && sourceContract.organizationalUnit.departmentCode) {\r\n            if (typeof sourceContract.organizationalUnit.departmentCode.codeValue != 'undefined' && sourceContract.organizationalUnit.departmentCode.codeValue) {\r\n                departmentExternalId = sourceContract.organizationalUnit.departmentCode.codeValue;\r\n            }\r\n        }\r\n    }\r\n\r\n    return departmentExternalId;\r\n}\r\ngetDepartmentExternalId()",
             "validation": {
                 "required": true
             }
-        },
-        {
+        }, {
             "name": "Details.Fte",
             "mode": "complex",
             "value": "function getFteValue(){\r\n    let fte = sourceContract.fullTimeEquivalenceRatio / 100;\r\n\r\n    return fte;\r\n}\r\ngetFteValue()",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "Details.HoursPerWeek",
             "mode": "complex",
             "value": "function getHoursPerWeek(){\r\n    let hoursPerWeek = \"\";\r\n\r\n    if (typeof sourceContract.customFields != 'undefined' && sourceContract.customFields) {\r\n        if (typeof sourceContract.customFields.contractHours != 'undefined' && sourceContract.customFields.contractHours) {\r\n            hoursPerWeek = sourceContract.customFields.contractHours;\r\n        }\r\n    }\r\n\r\n    return hoursPerWeek;\r\n}\r\ngetHoursPerWeek()",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "Details.Percentage",
             "mode": "field",
             "value": "fullTimeEquivalenceRatio",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "Details.Sequence",
             "mode": "field",
             "value": "itemID",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "EndDate",
-            "mode": "field",
-            "value": "terminationDate",
+            "mode": "complex",
+            "value": "function addDays(date, days) {\r\n    let copy = new Date(Number(date));\r\n    copy.setDate(date.getDate() + days);\r\n    return copy;\r\n}\r\n\r\nfunction getEndDate() {\r\n    let endDate = null\r\n    let actualEndDate = null\r\n\r\n\r\n    if (typeof sourceContract.terminationDate !== 'undefined' && sourceContract.terminationDate) {\r\n        endDate = new Date(sourceContract.terminationDate);\r\n    }else{\r\n        endDate = new Date(\"2099-12-31\")\r\n    }\r\n\r\n    actualEndDate = addDays(endDate, 0);\r\n\r\n\r\n   return actualEndDate;\r\n\r\n}\r\n\r\ngetEndDate();",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "ExternalId",
             "mode": "field",
             "value": "externalId",
             "validation": {
                 "required": true
             }
-        },
-        {
+        }, {
             "name": "Manager.ExternalId",
             "mode": "complex",
-            "value": "function getManagerExternalId(){\r\n    let managerExternalId = \"\";\r\n\r\n    if (typeof sourceContract.manager != 'undefined' && sourceContract.manager) {\r\n        if (typeof sourceContract.manager.workerID.idValue != 'undefined' && sourceContract.manager.workerID.idValue) {\r\n            managerExternalId = sourceContract.manager.workerID.idValue;\r\n        }\r\n    }\r\n\r\n    return managerExternalId;\r\n}\r\ngetManagerExternalId()",
+            "value": "function getManagerExternalId() {\r\n    let managerExternalId = \"\";\r\n    let managerItemID = \"\";\r\n\r\n    if (typeof sourceContract.manager != null && sourceContract.manager != \"\" && sourceContract.manager != undefined && sourceContract.manager) {\r\n\r\n        if ((sourceContract.manager.itemID).indexOf(\"HOOFD\") !== -1) {\r\n            managerExternalId = sourceContract.manager.workerID.idValue;\r\n        } else if ( typeof sourceContract.reportsTo != null && sourceContract.reportsTo != \"\" && sourceContract.reportsTo != undefined) {\r\n            if ((sourceContract.reportsTo).length >= 1) {\r\n                for (i = 0; i < (sourceContract.reportsTo).length; i++) {\r\n                    managerItemID = sourceContract.reportsTo[i].itemID;\r\n                    if ((managerItemID).indexOf(\"HOOFD\") !== -1) {\r\n                        managerExternalId = sourceContract.reportsTo[i].workerID.idValue;\r\n                        break;\r\n                    }\r\n                }\r\n\r\n            }\r\n        }\r\n    }\r\n\r\n\r\n    return managerExternalId;\r\n}\r\ngetManagerExternalId()",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "StartDate",
             "mode": "field",
             "value": "actualStartDate",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "Title.Code",
             "mode": "complex",
             "value": "function getTitleCode() {\r\n    let titleCode = \"\";\r\n\r\n    if (typeof sourceContract.jobCode != 'undefined' && sourceContract.jobCode) {\r\n        if (typeof sourceContract.jobCode.codeValue != 'undefined' && sourceContract.jobCode.codeValue) {\r\n            titleCode = sourceContract.jobCode.codeValue;\r\n        }\r\n    }\r\n\r\n    return titleCode;\r\n}\r\ngetTitleCode()",
             "validation": {
                 "required": false
             }
-        },
-        {
+        }, {
             "name": "Title.ExternalId",
             "mode": "complex",
             "value": "function getTitleCode() {\r\n    let titleCode = \"\";\r\n\r\n    if (typeof sourceContract.jobCode != 'undefined' && sourceContract.jobCode) {\r\n        if (typeof sourceContract.jobCode.codeValue != 'undefined' && sourceContract.jobCode.codeValue) {\r\n            titleCode = sourceContract.jobCode.codeValue;\r\n        }\r\n    }\r\n\r\n    return titleCode;\r\n}\r\ngetTitleCode()",
             "validation": {
                 "required": true
             }
-        },
-        {
+        }, {
             "name": "Title.Name",
             "mode": "complex",
             "value": "function getTitleName() {\r\n    let titleName = \"\";\r\n\r\n    if (typeof sourceContract.jobCode != 'undefined' && sourceContract.jobCode) {\r\n        if (typeof sourceContract.jobCode.longName != 'undefined' && sourceContract.jobCode.longName) {\r\n            titleName = sourceContract.jobCode.longName;\r\n        }\r\n    }\r\n\r\n    return titleName;\r\n}\r\ngetTitleName()",

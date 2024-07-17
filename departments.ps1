@@ -1,7 +1,7 @@
 #####################################################
 # HelloID-Conn-Prov-Source-ADP-Workforce-Departments
 #
-# Version: 2.1.0
+# Version: 2.2.0
 #####################################################
 
 # Set TLS to accept TLS, TLS 1.1 and TLS 1.2
@@ -257,8 +257,17 @@ Returns the raw JSON data containing all workers from ADP Workforce
                 }
 
                 $datasetJson = Invoke-WebRequest @splatRestMethodParameters -verbose:$false
-                $datasetCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(28591).GetBytes($datasetJson.content))
-                $dataset = $datasetCorrected | ConvertFrom-Json
+
+                if (-not[string]::IsNullOrEmpty($certificateBase64)) {    
+                    $dataset = $datasetJson.content | ConvertFrom-Json
+                }
+                elseif (-not [string]::IsNullOrEmpty($certificatePathertificatePath)) {
+                    $datasetCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::UTF8.GetBytes($datasetJson.content))
+                    $dataset = $datasetCorrected | ConvertFrom-Json
+                }
+                else {
+                    Throw "No certificate configured"
+                }
 
                 $result = $dataset.$contentField
                 if (-not [string]::IsNullOrEmpty($result)) {
@@ -278,8 +287,17 @@ Returns the raw JSON data containing all workers from ADP Workforce
             }
         
             $datasetJson = Invoke-WebRequest @splatRestMethodParameters -verbose:$false
-            $datasetCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(28591).GetBytes($datasetJson.content))
-            $dataset = $datasetCorrected | ConvertFrom-Json
+
+            if (-not[string]::IsNullOrEmpty($certificateBase64)) {    
+                $dataset = $datasetJson.content | ConvertFrom-Json
+            }
+            elseif (-not [string]::IsNullOrEmpty($certificatePathertificatePath)) {
+                $datasetCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::UTF8.GetBytes($datasetJson.content))
+                $dataset = $datasetCorrected | ConvertFrom-Json
+            }
+            else {
+                Throw "No certificate configured"
+            }
 
             $result = $dataset.$contentField
             if (-not [string]::IsNullOrEmpty($result)) {
