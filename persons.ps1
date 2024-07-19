@@ -623,7 +623,7 @@ catch {
 
     # If debug logging is toggled, log on which person and line the error occurs
     if ($c.isDebug -eq $true) {
-        Write-Warning "Error occurred for person [$($personInProcess.ExternalId)]. Error at Line [$($ex.InvocationInfo.ScriptLineNumber)]: $($ex.InvocationInfo.Line). Error: $(VerboseErrorMessage)"
+        Write-Warning "Error occurred for person [$($personInProcess.ExternalId)]. Error at Line [$($ex.InvocationInfo.ScriptLineNumber)]: $($ex.InvocationInfo.Line). Error: $($VerboseErrorMessage)"
     }
     
     throw "Could not enhance and export person objects to HelloID. Error Message: $($auditErrorMessage)"
