@@ -261,7 +261,7 @@ Returns the raw JSON data containing all workers from ADP Workforce
                 if (-not[string]::IsNullOrEmpty($certificateBase64)) {    
                     $dataset = $datasetJson.content | ConvertFrom-Json
                 }
-                elseif (-not [string]::IsNullOrEmpty($certificatePathertificatePath)) {
+                elseif (-not [string]::IsNullOrEmpty($certificatePath)) {
                     $datasetCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::UTF8.GetBytes($datasetJson.content))
                     $dataset = $datasetCorrected | ConvertFrom-Json
                 }
@@ -291,7 +291,7 @@ Returns the raw JSON data containing all workers from ADP Workforce
             if (-not[string]::IsNullOrEmpty($certificateBase64)) {    
                 $dataset = $datasetJson.content | ConvertFrom-Json
             }
-            elseif (-not [string]::IsNullOrEmpty($certificatePathertificatePath)) {
+            elseif (-not [string]::IsNullOrEmpty($certificatePath)) {
                 $datasetCorrected = [Text.Encoding]::UTF8.GetString([Text.Encoding]::UTF8.GetBytes($datasetJson.content))
                 $dataset = $datasetCorrected | ConvertFrom-Json
             }
