@@ -1,5 +1,3 @@
-## ADP Workforce Source Connector
-
 De ADP Workforce Source Connector koppelt ADP Workforce via de identity & access management (IAM) oplossing HelloID van Tools4ever aan je doelsystemen. De koppeling vereenvoudigt het beheer van toegangsrechten en autorisaties binnen je organisatie, zorgt daarbij voor consistentie en dringt de foutgevoeligheid terug. In dit artikel lees je meer over deze integratie, specifieke mogelijkheden en voordelen. 
 
 ## Wat is ADP Workforce
@@ -45,8 +43,8 @@ HelloID kan ook informatie uit je doelsystemen terugkoppelen naar ADP Workforce.
 ## ADP Workforce via HelloID koppelen met doelsystemen
 Je kunt ADP Workforce via HelloID aan diverse doelsystemen koppelen. Deze koppeling maakt het mogelijk informatie en mutaties uit ADP Workforce geautomatiseerd te verwerken in je doelsystemen. Prettig, want zo heb je hiernaar geen omkijken en til je het beheer van zowel gebruikersaccounts als autorisaties naar een hoger niveau. Enkele veelvoorkomende integraties zijn:
 
-ADP Workforce - Microsoft Entra ID koppeling: Entra ID is de cloudgebaseerde tegenhanger van Active Directory. Je kunt deze oplossing met behulp van HelloID naadloos integreren met ADP Workforce. De koppeling automatiseert diverse handmatige taken en dringt daarnaast de kans op menselijke fouten terug. HelloID synchroniseert ADP Workforce en Entra ID automatisch, en zorgt zo dat accounts en toegangsrechten altijd up-to-date zijn. 
+**ADP Workforce - Microsoft Entra ID koppeling:** Entra ID is de cloudgebaseerde tegenhanger van Active Directory. Je kunt deze oplossing met behulp van HelloID naadloos integreren met ADP Workforce. De koppeling automatiseert diverse handmatige taken en dringt daarnaast de kans op menselijke fouten terug. HelloID synchroniseert ADP Workforce en Entra ID automatisch, en zorgt zo dat accounts en toegangsrechten altijd up-to-date zijn. 
 
-ADP Workforce - Salto Space koppeling: Een belangrijke voorwaarde voor productief zijn is de toegang tot de juiste middelen. Daaronder valt ook toegang tot fysieke locaties zoals een kantoorpand of specifieke werk- of vergaderruimte. De koppeling tussen ADP Workforce en Salto Space zorgt dat je hiernaar geen omkijken hebt en medewerkers automatisch toegang hebben tot de ruimten waartoe zij bevoegd zijn. Je werkt daarbij met toegangsgroepen, die HelloID inregelt op basis van medewerkersinformatie. Ook blokkeert HelloID automatisch de toegang in Salto Space indien medewerkers uitstromen.
+**ADP Workforce - Salto Space koppeling:** Een belangrijke voorwaarde voor productief zijn is de toegang tot de juiste middelen. Daaronder valt ook toegang tot fysieke locaties zoals een kantoorpand of specifieke werk- of vergaderruimte. De koppeling tussen ADP Workforce en Salto Space zorgt dat je hiernaar geen omkijken hebt en medewerkers automatisch toegang hebben tot de ruimten waartoe zij bevoegd zijn. Je werkt daarbij met toegangsgroepen, die HelloID inregelt op basis van medewerkersinformatie. Ook blokkeert HelloID automatisch de toegang in Salto Space indien medewerkers uitstromen.
 
 We bieden voor HelloID meer dan 200 connectoren aan, waarmee je de IAM-oplossing kunt koppelen aan een groot aantal bron- en doelsystemen. Dankzij de brede integratiemogelijkheden krijg je de vrijheid om ADP Workforce aan alle populaire doelsystemen te koppelen. 
