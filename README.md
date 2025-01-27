@@ -17,6 +17,7 @@
 ## Version
 | Version | Description | Date |
 | - | - | - |
+| 3.0.0   | Update readme, changed endpoints, minor fixes | 27/01/2025  |
 | 2.1.3   | Update readme, added filter for past contract, mod endDate mapping | 14/05/2024  |
 | 2.1.2   | Update readme, added option for cloud agent | 13/12/2023  |
 | 2.1.1   | Update readme | 08/09/2023  |
@@ -63,7 +64,8 @@ Note that the _'HelloID-Conn-Prov-Source-ADP-Workforce'_ implementation is based
 ### API's being used by the HelloID connector
 | _API_ | _Description_|
 | - | - |
-| _Worker-Demographics_ | _Contains the employees personal and contract data_ |
+| _accounts.eu.adp.com/auth_ | _Url for autorisation is different than baseurl_ | 
+| _Workers_ | _Contains the employees personal and contract data_ |
 | _Organization-Departments_ | _Contains data about the organisation structure_ |
 
 <!-- Getting started -->

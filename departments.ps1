@@ -1,7 +1,7 @@
 #####################################################
 # HelloID-Conn-Prov-Source-ADP-Workforce-Departments
 #
-# Version: 2.2.0
+# Version: 3.0.0
 #####################################################
 
 # Set TLS to accept TLS, TLS 1.1 and TLS 1.2
@@ -225,7 +225,7 @@ Returns the raw JSON data containing all workers from ADP Workforce
     # $contentField = The field in the response content that contains the actual data
     # $paging = A boolean specifying to user paging or not
     switch ($Url) {
-        "https://api.eu.adp.com/hr/v2/worker-demographics" {
+        "https://api.eu.adp.com/hr/v2/workers" {
             $contentField = "workers"
             $paging = $true
         }
@@ -355,18 +355,22 @@ try {
     $departments = [System.Collections.ArrayList]::new()
     Invoke-ADPRestMethod @splatADPRestMethodParams ([ref]$departments)
 
+    # Only use of active departments
+    $departments = $departments | Where-Object { $_.activeIndicator -eq $true }
     # Sort on ExternalId (to make sure the order is always the same)
     $departments = $departments | Sort-Object -Property { $_.departmentCode.codeValue }
 
-    $departments | Add-Member -MemberType NoteProperty -Name "customFields" -Value ([PSCustomObject]@{}) -Force
+    $departments | Add-Member -MemberType NoteProperty -Name "customFields" -Value $null -Force
     $departments | ForEach-Object {
         if (($_.auxilliaryFields | Measure-Object).Count -ge 1) {
             # Transform auxilliaryFields on departments
-            foreach ($attribute in $_.auxilliaryFields) {
-                # Add a property for each field in object
-                $_.customFields | Add-Member -MemberType NoteProperty -Name "$($attribute.nameCode.codeValue)" -Value "$($attribute.stringValue)" -Force
-            }
+            $customFieldObject = [PSCustomObject]@{}
 
+            foreach ($attribute in $_.auxilliaryFields) {                
+                # Add a property for each field in object
+                $customFieldObject | Add-Member -MemberType NoteProperty -Name "$($attribute.ItemId)" -Value "$($attribute.stringValue)" -Force                
+            }
+            $_.customFields = $customFieldObject
             # Remove unneccesary fields from  object (to avoid unneccesary large objects and confusion when mapping)
             # Remove auxilliaryFields ,since the data is transformed into seperate object
             $_.PSObject.Properties.Remove('auxilliaryFields')
@@ -404,7 +408,7 @@ try {
         $_.ExternalId = $_.departmentCode.codeValue
         $_.DisplayName = $_.departmentCode.longName
         $_.Name = $_.departmentCode.longName
-        $_.ManagerExternalId = $_.customFields.manager
+        $_.ManagerExternalId = $_.customFields.afd_manager
         $_.ParentExternalId = $_.parentDepartmentCode.codeValue
 
         # Sanitize and export the json
