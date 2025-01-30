@@ -17,6 +17,7 @@
 ## Version
 | Version | Description | Date |
 | - | - | - |
+| 3.0.0   | Update readme, changed endpoints, minor fixes | 27/01/2025  |
 | 2.1.3   | Update readme, added filter for past contract, mod endDate mapping | 14/05/2024  |
 | 2.1.2   | Update readme, added option for cloud agent | 13/12/2023  |
 | 2.1.1   | Update readme | 08/09/2023  |
@@ -49,6 +50,7 @@
     - [Assignments](#assignments)
     - [Custom Fields](#custom-fields)
     - [Mappings](#mappings)
+    - [Custommapping](#custommapping)
     - [Caveats](#caveats)
   - [PowerShell functions](#powershell-functions)
     - [Sample data](#sample-data)
@@ -63,7 +65,8 @@ Note that the _'HelloID-Conn-Prov-Source-ADP-Workforce'_ implementation is based
 ### API's being used by the HelloID connector
 | _API_ | _Description_|
 | - | - |
-| _Worker-Demographics_ | _Contains the employees personal and contract data_ |
+| _accounts.eu.adp.com/auth_ | _Url for autorisation is different than baseurl_ | 
+| _Workers_ | _Contains the employees personal and contract data_ |
 | _Organization-Departments_ | _Contains data about the organisation structure_ |
 
 <!-- Getting started -->
@@ -82,11 +85,7 @@ To get access to the ADP Workforce API's, a x.509 certificate is needed. Please 
 3. The customer sends the X.509 certificaat, client_id and client_secret to Tools4ever (or any other implementer).
 > **Note:** Each ADP environment requires its own certificate. If there is an Accept and a Production environment, 2 certificates are required.
 
-APD will register an application that's allowed to access the specified API's. _worker-demographics_ and _organizational_departments_. Other API's within the ADP Workforce environment cannot be accessed.
-
-Here's an improved version of the README text:
-
----
+APD will register an application that's allowed to access the specified API's. _workers_ and _organizational_departments_. Other API's within the ADP Workforce environment cannot be accessed.
 
 ## Importing *.pfx File Options
 
@@ -110,12 +109,6 @@ Option 2, named "Base64 String of Certificate," involves providing a base64-enco
 
 2. Leave the configuration of "Certificate Path" empty.
 
----
-
-This updated version clarifies the options, provides clearer instructions for using Option 2, and includes formatting for better readability.
-
-
-
 ### AccessToken
 In order to retrieve data from the ADP Workforce API's, an AccessToken has to be obtained. The AccessToken is used for all consecutive calls to ADP Workforce. To obtain an AccessToken, we will need the ___ClientID___, ___ClientSecret___, ___The path to your pfx certificate___ and the ___password for the pfx certificate___.
 
@@ -137,6 +130,21 @@ A basic person and contract mapping is provided. Make sure to further customize 
 
 **Note:**  Fields in the JSON output are no longer displayed if they do not contain a value. Make sure to validated on objects when using complex mapping
 
+### Custommapping
+To correctly import the mapping a couple customfields need to be added in HelloID.
+
+| _Model_ | _Field_ | _ADP source field_ | _type_ | _comment_ |
+| - | - | - | - | - |
+| Person | AssociateOID | associateOID | Field | Needed when updating the business e-mailadres through ADP target connector |
+| Person | IsManager | IsManager | Field | Calculated through importscript |
+| Contract | ADPReportingCode | occupationalClassifications.classificationCode.codeValue | Complex | Specific code value administrationvalue for employee |
+| Contract | ADPReportingCodeShortName | occupationalClassifications.classificationCode.shortName | Complex | Specific name value administrationvalue for employee |
+| Contract | DepartmentShortCode | organizationalUnit.departmentCode.shortName | Field | Department abbreviation, which is different than department id |
+| Contract | FormationPostion | positionID | Field | |
+| Contract | ParentDepartmentShortCode | organizationalUnit.parentDepartmentCode.codeValue | Complex | Specific code value of parentdeparment |
+| Contract | ParentDepartmentShortName | organizationalUnit.parentDepartmentCode.codeValue | Complex | Specific name value of parentdeparment |
+
+
 ### Caveats
 __[worker.businessCommunication]__
 
@@ -148,7 +156,7 @@ The _[worker.businessCommunication]_ array contains information about the:
 
 All three are array's. Implying that they may contain multiple items.
 
-Since the demo data doesn't have array's with multiple items and since there's no way to determine which item is 'primary'. At this point it's hardcoded to always pick the first __[0]__ based item in the array.
+Since the data can contain an array with multiple items and since there's no way to determine which item is 'primary', at this point it's hardcoded to always pick the first __[0]__ based item in the array.
 
 ```powershell
 if ($null -ne $worker.businessCommunication.landLines){

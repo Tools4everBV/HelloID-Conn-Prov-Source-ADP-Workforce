@@ -1,7 +1,7 @@
 #####################################################
 # HelloID-Conn-Prov-Source-ADP-Workforce-Departments
 #
-# Version: 2.2.0
+# Version: 3.0.0
 #####################################################
 
 # Set TLS to accept TLS, TLS 1.1 and TLS 1.2
@@ -96,7 +96,7 @@ Retrieves an AccessToken from the ADP API using the standard <Invoke-RestMethod>
 .DESCRIPTION
 The ADP Workforce API's uses OAuth for authentication\authorization.
 Before data can be retrieved from the API's, an AccessToken has to obtained. The AccessToken is used for all consecutive calls to the ADP Workforce API's. 
-Tokens only have access to a certain API scope. Default the scope is set to: 'worker-demographics organization-departments'. 
+Tokens only have access to a certain API scope. Default the scope is set to: 'workers organization-departments'. 
 Data outside this scope from other API's cannot be retrieved
 
 .PARAMETER ClientID
@@ -178,7 +178,7 @@ The [X509Certificate] object containing the *.pfx
 .EXAMPLE
 $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new("the path to the *.pfx file", "Password for the *.pfx certificate")
 
-Invoke-ADPRestMethod -Uri 'https://test-api.adp.com/hr/v2/worker-demographics' -Method 'GET' -AccessToken '0000-0000-0000-0000' -Certifcate $certificate
+Invoke-ADPRestMethod -Uri 'https://test-api.adp.com/hr/v2/workers' -Method 'GET' -AccessToken '0000-0000-0000-0000' -Certifcate $certificate
 
 Returns the raw JSON data containing all workers from ADP Workforce
 #>
@@ -225,7 +225,7 @@ Returns the raw JSON data containing all workers from ADP Workforce
     # $contentField = The field in the response content that contains the actual data
     # $paging = A boolean specifying to user paging or not
     switch ($Url) {
-        "https://api.eu.adp.com/hr/v2/worker-demographics" {
+        "https://api.eu.adp.com/hr/v2/workers" {
             $contentField = "workers"
             $paging = $true
         }
@@ -236,7 +236,7 @@ Returns the raw JSON data containing all workers from ADP Workforce
     }
 
     try {
-        # Currently only supported for the worker-demographics endpoint
+        # Currently only supported for the workers endpoint
         if ($true -eq $paging) {
             # Fetch the data in smaller chunks, otherwise the API of ADP will return an error 500 Internal Server Error or an error 503 Server / Service unavailable
             $take = 100
@@ -355,18 +355,22 @@ try {
     $departments = [System.Collections.ArrayList]::new()
     Invoke-ADPRestMethod @splatADPRestMethodParams ([ref]$departments)
 
+    # Only use of active departments
+    $departments = $departments | Where-Object { $_.activeIndicator -eq $true }
     # Sort on ExternalId (to make sure the order is always the same)
     $departments = $departments | Sort-Object -Property { $_.departmentCode.codeValue }
 
-    $departments | Add-Member -MemberType NoteProperty -Name "customFields" -Value ([PSCustomObject]@{}) -Force
+    $departments | Add-Member -MemberType NoteProperty -Name "customFields" -Value $null -Force
     $departments | ForEach-Object {
         if (($_.auxilliaryFields | Measure-Object).Count -ge 1) {
             # Transform auxilliaryFields on departments
-            foreach ($attribute in $_.auxilliaryFields) {
-                # Add a property for each field in object
-                $_.customFields | Add-Member -MemberType NoteProperty -Name "$($attribute.nameCode.codeValue)" -Value "$($attribute.stringValue)" -Force
-            }
+            $customFieldObject = [PSCustomObject]@{}
 
+            foreach ($attribute in $_.auxilliaryFields) {                
+                # Add a property for each field in object
+                $customFieldObject | Add-Member -MemberType NoteProperty -Name "$($attribute.ItemId)" -Value "$($attribute.stringValue)" -Force                
+            }
+            $_.customFields = $customFieldObject
             # Remove unneccesary fields from  object (to avoid unneccesary large objects and confusion when mapping)
             # Remove auxilliaryFields ,since the data is transformed into seperate object
             $_.PSObject.Properties.Remove('auxilliaryFields')
@@ -403,8 +407,7 @@ try {
         # Set required fields for HelloID
         $_.ExternalId = $_.departmentCode.codeValue
         $_.DisplayName = $_.departmentCode.longName
-        $_.Name = $_.departmentCode.longName
-        $_.ManagerExternalId = $_.customFields.manager
+        $_.ManagerExternalId = $_.customFields.afd_manager
         $_.ParentExternalId = $_.parentDepartmentCode.codeValue
 
         # Sanitize and export the json
