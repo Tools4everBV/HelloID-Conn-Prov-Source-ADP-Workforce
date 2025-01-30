@@ -407,7 +407,6 @@ try {
         # Set required fields for HelloID
         $_.ExternalId = $_.departmentCode.codeValue
         $_.DisplayName = $_.departmentCode.longName
-        $_.Name = $_.departmentCode.longName
         $_.ManagerExternalId = $_.customFields.afd_manager
         $_.ParentExternalId = $_.parentDepartmentCode.codeValue
 
