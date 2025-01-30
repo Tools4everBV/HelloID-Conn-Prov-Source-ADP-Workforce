@@ -87,10 +87,6 @@ To get access to the ADP Workforce API's, a x.509 certificate is needed. Please 
 
 APD will register an application that's allowed to access the specified API's. _workers_ and _organizational_departments_. Other API's within the ADP Workforce environment cannot be accessed.
 
-Here's an improved version of the README text:
-
----
-
 ## Importing *.pfx File Options
 
 There are two methods available for importing the *.pfx file:
@@ -112,12 +108,6 @@ Option 2, named "Base64 String of Certificate," involves providing a base64-enco
     ```
 
 2. Leave the configuration of "Certificate Path" empty.
-
----
-
-This updated version clarifies the options, provides clearer instructions for using Option 2, and includes formatting for better readability.
-
-
 
 ### AccessToken
 In order to retrieve data from the ADP Workforce API's, an AccessToken has to be obtained. The AccessToken is used for all consecutive calls to ADP Workforce. To obtain an AccessToken, we will need the ___ClientID___, ___ClientSecret___, ___The path to your pfx certificate___ and the ___password for the pfx certificate___.
@@ -166,7 +156,7 @@ The _[worker.businessCommunication]_ array contains information about the:
 
 All three are array's. Implying that they may contain multiple items.
 
-Since the demo data doesn't have array's with multiple items and since there's no way to determine which item is 'primary'. At this point it's hardcoded to always pick the first __[0]__ based item in the array.
+Since the data can contain an array with multiple items and since there's no way to determine which item is 'primary', at this point it's hardcoded to always pick the first __[0]__ based item in the array.
 
 ```powershell
 if ($null -ne $worker.businessCommunication.landLines){
