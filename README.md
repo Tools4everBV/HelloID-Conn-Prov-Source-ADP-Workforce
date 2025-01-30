@@ -50,6 +50,7 @@
     - [Assignments](#assignments)
     - [Custom Fields](#custom-fields)
     - [Mappings](#mappings)
+    - [Custommapping](#custommapping)
     - [Caveats](#caveats)
   - [PowerShell functions](#powershell-functions)
     - [Sample data](#sample-data)
@@ -84,7 +85,7 @@ To get access to the ADP Workforce API's, a x.509 certificate is needed. Please 
 3. The customer sends the X.509 certificaat, client_id and client_secret to Tools4ever (or any other implementer).
 > **Note:** Each ADP environment requires its own certificate. If there is an Accept and a Production environment, 2 certificates are required.
 
-APD will register an application that's allowed to access the specified API's. _worker-demographics_ and _organizational_departments_. Other API's within the ADP Workforce environment cannot be accessed.
+APD will register an application that's allowed to access the specified API's. _workers_ and _organizational_departments_. Other API's within the ADP Workforce environment cannot be accessed.
 
 Here's an improved version of the README text:
 
@@ -138,6 +139,20 @@ Custom fields can be selected in both the _person_ and _contract_ mapping.
 A basic person and contract mapping is provided. Make sure to further customize these accordingly.
 
 **Note:**  Fields in the JSON output are no longer displayed if they do not contain a value. Make sure to validated on objects when using complex mapping
+
+### Custommapping
+To correctly import the mapping a couple customfields need to be added in HelloID.
+
+| _Model_ | _Field_|_ADP source field_|_type_|_comment_|
+|Person|AssociateOID|associateOID|Field|Needed when updating the business e-mailadres through ADP target connector|
+|Person|IsManager|IsManager|Field|Calculated through importscript|
+|Contract|ADPReportingCode|occupationalClassifications.classificationCode.codeValue|Complex|Spefic code value administrationvalue for employee|
+|Contract|ADPReportingCodeShortName|occupationalClassifications.classificationCode.shortName|Complex|Spefic name value administrationvalue for employee|
+|Contract|DepartmentShortCode|organizationalUnit.departmentCode.shortName|Field|Department abbreviation, which is different than department id|
+|Contract|FormationPostion|positionID|Field||
+|Contract|ParentDepartmentShortCode|organizationalUnit.parentDepartmentCode.codeValue|Complex|Spefic code value of parentdeparment|
+|Contract|ParentDepartmentShortName|organizationalUnit.parentDepartmentCode.codeValue|Complex|Spefic name value of parentdeparment|
+
 
 ### Caveats
 __[worker.businessCommunication]__
