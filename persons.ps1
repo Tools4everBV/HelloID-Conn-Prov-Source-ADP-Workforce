@@ -96,7 +96,7 @@ Retrieves an AccessToken from the ADP API using the standard <Invoke-RestMethod>
 .DESCRIPTION
 The ADP Workforce API's uses OAuth for authentication\authorization.
 Before data can be retrieved from the API's, an AccessToken has to obtained. The AccessToken is used for all consecutive calls to the ADP Workforce API's. 
-Tokens only have access to a certain API scope. Default the scope is set to: 'worker-demographics organization-departments'. 
+Tokens only have access to a certain API scope. Default the scope is set to: 'workers organization-departments'. 
 Data outside this scope from other API's cannot be retrieved
 
 .PARAMETER ClientID
@@ -178,7 +178,7 @@ The [X509Certificate] object containing the *.pfx
 .EXAMPLE
 $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new("the path to the *.pfx file", "Password for the *.pfx certificate")
 
-Invoke-ADPRestMethod -Uri 'https://test-api.adp.com/hr/v2/worker-demographics' -Method 'GET' -AccessToken '0000-0000-0000-0000' -Certifcate $certificate
+Invoke-ADPRestMethod -Uri 'https://test-api.adp.com/hr/v2/workers' -Method 'GET' -AccessToken '0000-0000-0000-0000' -Certifcate $certificate
 
 Returns the raw JSON data containing all workers from ADP Workforce
 #>
