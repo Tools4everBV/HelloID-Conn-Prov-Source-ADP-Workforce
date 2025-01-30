@@ -148,11 +148,11 @@ To correctly import the mapping a couple customfields need to be added in HelloI
 | Person | AssociateOID | associateOID | Field | Needed when updating the business e-mailadres through ADP target connector |
 | Person | IsManager | IsManager | Field | Calculated through importscript |
 | Contract | ADPReportingCode | occupationalClassifications.classificationCode.codeValue | Complex | Specific code value administrationvalue for employee |
-| Contract | ADPReportingCodeShortName | occupationalClassifications.classificationCode.shortName | Complex | Spefic name value administrationvalue for employee |
+| Contract | ADPReportingCodeShortName | occupationalClassifications.classificationCode.shortName | Complex | Specific name value administrationvalue for employee |
 | Contract | DepartmentShortCode | organizationalUnit.departmentCode.shortName | Field | Department abbreviation, which is different than department id |
 | Contract | FormationPostion | positionID | Field | |
-| Contract | ParentDepartmentShortCode | organizationalUnit.parentDepartmentCode.codeValue | Complex | Spefic code value of parentdeparment |
-| Contract | ParentDepartmentShortName | organizationalUnit.parentDepartmentCode.codeValue | Complex | Spefic name value of parentdeparment |
+| Contract | ParentDepartmentShortCode | organizationalUnit.parentDepartmentCode.codeValue | Complex | Specific code value of parentdeparment |
+| Contract | ParentDepartmentShortName | organizationalUnit.parentDepartmentCode.codeValue | Complex | Specific name value of parentdeparment |
 
 
 ### Caveats
