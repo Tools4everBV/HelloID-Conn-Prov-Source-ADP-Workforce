@@ -143,15 +143,16 @@ A basic person and contract mapping is provided. Make sure to further customize 
 ### Custommapping
 To correctly import the mapping a couple customfields need to be added in HelloID.
 
-| _Model_ | _Field_|_ADP source field_|_type_|_comment_|
-|Person|AssociateOID|associateOID|Field|Needed when updating the business e-mailadres through ADP target connector|
-|Person|IsManager|IsManager|Field|Calculated through importscript|
-|Contract|ADPReportingCode|occupationalClassifications.classificationCode.codeValue|Complex|Spefic code value administrationvalue for employee|
-|Contract|ADPReportingCodeShortName|occupationalClassifications.classificationCode.shortName|Complex|Spefic name value administrationvalue for employee|
-|Contract|DepartmentShortCode|organizationalUnit.departmentCode.shortName|Field|Department abbreviation, which is different than department id|
-|Contract|FormationPostion|positionID|Field||
-|Contract|ParentDepartmentShortCode|organizationalUnit.parentDepartmentCode.codeValue|Complex|Spefic code value of parentdeparment|
-|Contract|ParentDepartmentShortName|organizationalUnit.parentDepartmentCode.codeValue|Complex|Spefic name value of parentdeparment|
+| _Model_ | _Field_ | _ADP source field_ | _type_ | _comment_ |
+| - | - | - | - | - |
+| Person | AssociateOID | associateOID | Field | Needed when updating the business e-mailadres through ADP target connector |
+| Person | IsManager | IsManager | Field | Calculated through importscript |
+| Contract | ADPReportingCode | occupationalClassifications.classificationCode.codeValue | Complex | Spefic code value administrationvalue for employee |
+| Contract | ADPReportingCodeShortName | occupationalClassifications.classificationCode.shortName | Complex | Spefic name value administrationvalue for employee |
+| Contract | DepartmentShortCode | organizationalUnit.departmentCode.shortName | Field | Department abbreviation, which is different than department id |
+| Contract | FormationPostion | positionID | Field | |
+| Contract | ParentDepartmentShortCode | organizationalUnit.parentDepartmentCode.codeValue | Complex | Spefic code value of parentdeparment |
+| Contract | ParentDepartmentShortName | organizationalUnit.parentDepartmentCode.codeValue | Complex | Spefic name value of parentdeparment |
 
 
 ### Caveats
