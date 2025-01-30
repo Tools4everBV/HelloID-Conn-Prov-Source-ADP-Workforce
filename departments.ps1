@@ -236,7 +236,7 @@ Returns the raw JSON data containing all workers from ADP Workforce
     }
 
     try {
-        # Currently only supported for the worker-demographics endpoint
+        # Currently only supported for the workers endpoint
         if ($true -eq $paging) {
             # Fetch the data in smaller chunks, otherwise the API of ADP will return an error 500 Internal Server Error or an error 503 Server / Service unavailable
             $take = 100
