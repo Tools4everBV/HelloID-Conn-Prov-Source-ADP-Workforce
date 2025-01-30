@@ -2,7 +2,7 @@
 
 | :warning: Warning |
 |:---------------------------|
-| The latest version of this connector requires **no longer contains Custom.AssociateOID in the mapping**. As this is a required field for most configuration, please add and mapp this field manually.       |
+| The latest version of this connector requires a few custom fields to be set. See [custom mapping](#custommapping) for more details.
 
 | :information_source: Information |
 |:---------------------------|
@@ -50,7 +50,7 @@
     - [Assignments](#assignments)
     - [Custom Fields](#custom-fields)
     - [Mappings](#mappings)
-    - [Custommapping](#custommapping)
+    - [Custom mapping](#custommapping)
     - [Caveats](#caveats)
   - [PowerShell functions](#powershell-functions)
     - [Sample data](#sample-data)
